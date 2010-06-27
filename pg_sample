@@ -450,3 +450,5 @@ unless ($opt{keep}) {
 }
 
 notice("Done.\n");
+
+exit 0;
