@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# NOTE: THIS SCRIPT IS DESTRUCTIVE! It will drop and recrease the table
+# NOTE: THIS SCRIPT IS DESTRUCTIVE! It will drop and recreate the table
 
 our $DB_NAME = '_pg_sample_test';
 
@@ -55,6 +55,7 @@ GetOptions(\%opt,
   "db_pass|db_password|password|W=s",
   "db_host|host=s",
   "db_port|port=i",
+  "force",
 );
 
 $opt{db_user} ||= $ENV{PGUSER} || scalar getpwuid($<);
@@ -66,6 +67,15 @@ $ENV{PGUSER} = $opt{db_user};
 $ENV{PGDATABASE} = $opt{db_name};
 $ENV{PGHOST} = $opt{db_host};
 $ENV{PGPORT} = $opt{db_port};
+
+unless ($opt{force}) {
+  print "Warning: database $opt{db_name} will be dropped.\n";
+  print "Are you sure you want to continue? [y/N]: ";
+  my $ans = <STDIN>;
+  chomp $ans;
+  $ans =~ s/^\s+|\s+$//g;
+  unless (lc $ans =~ /^y/i) { exit 0 }
+}
 
 my $template1_dbh = connect_template1();
 eval { $template1_dbh->do("DROP DATABASE $opt{db_name}") };
