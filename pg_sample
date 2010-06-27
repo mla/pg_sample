@@ -1,0 +1,452 @@
+#!/usr/bin/perl
+
+=head1 NAME
+
+pg_sample - extract a small, sample dataset from a larger PostgreSQL
+database while maintaining referential integrity.
+
+=head1 SYNOPSIS
+
+pg_sample [ option... ] [ dbname ]
+
+=head1 DESCRIPTION
+
+pg_sample is a utility for exporting a small, sample dataset from a
+larger PostgreSQL database. The output and command-line options closely
+resemble the pg_dump backup utility (although only the plain-text format
+is supported).
+
+The sample database produced includes all tables from the original,
+maintains referential integrity, and supports circular dependencies.
+
+To build an actual instance of the sample database, the output of this script
+can be piped to the psql utility. For example, assuming we have an existing
+PostgreSQL database named "mydb", a sample database could be constructed with:
+
+  createdb sampledb
+  pg_sample mydb | psql sampledb
+
+=head2 Requirements
+
+* PostgreSQL 8.1 or later (for DISABLE/ENABLE TRIGGER support)
+
+* pg_dump should be in your search path (in order to dump the schema)
+
+=head2 Command-line Options
+
+=over
+
+=item I<dbname>
+
+Specifies the database to sample. If not specified, uses the
+environment variable PGDATABASE, if defined; otherwise, uses
+the username of the user executing the script.
+
+=item B<-a>
+
+=item B<--data-only>
+
+Output only the data, not the schema (data definitions).
+
+=item B<-E> I<encoding>
+
+=item B<--encoding=>encoding
+
+Use the specified character set encoding. If not specified, uses the
+environment variable PGCLIENTENCODING, if defined; otherwise, uses
+the encoding of the database.
+
+=item B<-f> I<file>
+
+=item B<--file=>I<file>
+
+Send output to the specified file. If omitted, standard output is used.
+
+=item B<--force>
+
+Drop the sample schema if it exists.
+
+=item B<--keep>
+
+Don't delete the sample schema when the script finishes.
+
+=item B<--limit=>I<number>
+
+The maximum number of rows to initially copy from each table
+(defaults to 100). Note that sample tables may end up with significantly
+more rows in order to satisfy foreign key constraints.
+
+=item B<--random>
+
+Randomize the rows initially selected from each table. May significantly
+increase the running time of the script.
+
+=item B<--schema=>I<name>
+
+The schema name to use for the sample database (defaults to _pg_sample).
+
+=item B<--trace>
+
+Turn on Perl DBI tracing. See the DBI module documentation for details.
+
+=item B<--verbose>
+
+Output status information to standard error.
+
+=back
+
+The following options control the database connection parameters.
+
+=over
+
+=item B<-h> I<host>
+
+=item B<--host>=I<host>
+
+The host name to connect to. Defaults to the PGHOST environment
+variable if not specified.
+
+=item B<-p> I<port>
+
+=item B<--port=>I<port>
+
+The database port to connect to. Defaults to the PGPORT environment
+variable, if set; otherwise, the default port is used.
+
+=item B<-U> I<username>
+
+=item B<--username=>I<username>
+
+User name to connect as.
+
+=item B<-W> I<password>
+
+=item B<-password=>I<password>
+
+Password to connect with.
+
+=back
+
+=head1 LICENSE
+
+This code is released under the Artistic License. See L<perlartistic>.
+
+=head1 SEE ALSO
+
+L<createdb(1)>, L<pg_dump(1)>, L<psql(1)>
+
+=head1 AUTHOR
+
+Maurice Aubrey <maurice.aubrey@gmail.com>
+
+=cut
+
+# Algorithm: we create a special sample schema in the original database
+# (named _pg_sample by default).
+#
+# For each table in the original database, a similarly named table is created
+# in the sample schema, along with a subset of rows (100 rows maximum, by default).
+#
+# Foreign key constraints are then checked, and any rows needed to satisfy them
+# are copied into the sample tables.
+#
+# Finally, the database schema and sample data are output, renaming the sample
+# table names to reflect the original database.
+
+use strict;
+use warnings;
+use Carp;
+use Getopt::Long qw/ GetOptions :config no_ignore_case /;
+use DBI;
+
+our $VERSION = "0.01";
+
+my %opt; # closure; all functions have access to options
+
+sub connect_db {
+  my $dsn = join ';',
+    "dbi:Pg:dbname=$opt{db_name}",
+    $opt{db_host} ? "host=$opt{db_host}" : (),
+    $opt{db_port} ? "port=$opt{db_port}" : (),
+  ;
+
+  my $dbh = DBI->connect(
+    $dsn,
+    $opt{db_user},
+    $opt{db_pass},
+    {
+      RaiseError       => 1,
+      AutoCommit       => 1,
+      FetchHashKeyName => 'NAME_lc',
+      PrintError       => 0,
+      HandleError      => sub { confess( shift ) },
+    },
+  ) or croak "db connection failed!";
+
+  $dbh->trace(1) if defined $opt{trace};
+
+  return $dbh;
+}
+
+# Return a copy of a hash with all keys lowercased.
+#
+# XXX Not sure why the fk info is coming back uppercase even though
+# FetchHashKeyName is set to NAME_lc on the db handle.
+sub lower_keys($) {
+  my $hash = shift or return;
+
+  ref $hash eq 'HASH' or croak "not a hash reference";
+
+  my %lower = map { lc($_) => $hash->{$_} } keys %$hash;
+  return \%lower;
+}
+
+# Encode the actual schema and table name into a new table
+# name lives under our sample schema. e.g., a table like
+# users.details (schema users, table details) would be converted
+# to something like _pg_sample.users__details (depending on the
+# value of --schema).
+#
+# @param fully qualified table name (schema + table)
+sub sample_table($) {
+  my $table = shift;
+
+  $table =~ /^[^.]+\.[^.]+$/ or croak "malformed table '$table'";
+
+  $table =~ s/(__|\.)/$1 eq '.' ? '__' : '___'/ge;
+  $table = "$opt{schema}.$table";
+  return $table;
+}
+
+sub notice {
+  return unless $opt{verbose};
+  print STDERR join "", @_;
+}
+
+%opt = (
+  db_host => '',
+  db_port => '',
+  keep => 0,
+  limit => 100,
+  random => 0,
+  schema => '_pg_sample',
+  verbose => 0,
+);
+
+GetOptions(\%opt,
+  "data-only|a",
+  "db_name=s",
+  "db_user|db_username|username|U=s",
+  "db_pass|db_password|password|W=s",
+  "db_host|host=s",
+  "db_port|port=i",
+  "encoding|E=s",
+  "file|f=s",
+  "force",
+  "keep",
+  "limit=i",
+  "random",
+  "schema=s",
+  "trace",
+  "verbose|v",
+  "version|V",
+);
+
+if ($opt{version}) {
+  print "$VERSION\n";
+  exit 0;
+}
+
+# @ARGV or die "Usage: $0 [ option... ] [ dbname ]\n";
+
+$opt{db_user}  ||= $ENV{PGUSER} || scalar getpwuid($<);
+$opt{db_name}  ||= shift() || $ENV{PGDATABASE} || $opt{db_user};
+$opt{db_host}  ||= $ENV{PGHOST} if defined $ENV{PGHOST};
+$opt{db_port}  ||= $ENV{PGPORT} if defined $ENV{PGPORT};
+$opt{encoding} ||= $ENV{PGCLIENTENCODING} if defined $ENV{PGCLIENTENCODING};
+
+my $dbh = connect_db(%opt) or croak "unable to connect to database";
+
+if ($opt{file}) {
+  open STDOUT, '>', $opt{file} or croak "unable to redirect stdout: $!";
+}
+
+unless ($opt{encoding}) {
+  ($opt{encoding}) = $dbh->selectrow_array(qq{ SHOW server_encoding });
+}
+
+$dbh->do(qq{ SET client_min_messages = warning }); # suppress notice messages
+if ($opt{force}) {
+  notice("Dropping sample schema $opt{schema}\n");
+  $dbh->do(qq{ DROP SCHEMA IF EXISTS $opt{schema} CASCADE });
+}
+
+unless ($opt{'data-only'}) {
+  notice("Exporting schema\n");
+
+  local $ENV{PGUSER} = $opt{db_user};
+  local $ENV{PGDATABASE} = $opt{db_name};
+  local $ENV{PGHOST} = $opt{db_host};
+  local $ENV{PGPORT} = $opt{db_port};
+  local $ENV{PGCLIENTENCODING} = $opt{encoding};
+
+  my $cmd = "pg_dump --schema-only";
+  system($cmd) == 0 or croak "command '$cmd' failed: $?";
+}
+
+notice("Creating sample schema $opt{schema}\n");
+$dbh->do(qq{ CREATE SCHEMA $opt{schema} });
+
+# create copies of each table in a separate schema and insert no
+# more than --limit rows initially.
+my @tables;
+my $sth = $dbh->table_info(undef, undef, undef, 'TABLE');
+while (my $row = lower_keys($sth->fetchrow_hashref)) {
+  next unless uc $row->{table_type} eq 'TABLE'; # skip SYSTEM TABLE values
+  next if $row->{table_schem} eq 'information_schema'; # special pg schema
+
+  $row->{table_schem} or die "no table_schem value?!";
+  $row->{table_name} or die "no table_name value?!";
+
+  my $table = "$row->{table_schem}.$row->{table_name}";
+  push @tables, $table;
+
+  my $sample_table = sample_table($table);
+
+  notice("Creating table $sample_table ");
+
+  my $order = $opt{random} ? 'ORDER BY random()' : '';
+
+  $dbh->do(qq{
+    CREATE TABLE $sample_table AS
+          SELECT *
+            FROM $table
+          $order
+           LIMIT $opt{limit} 
+  });
+
+  if ($opt{verbose}) {
+    my($num_rows) = $dbh->selectrow_array(qq{ SELECT count(*) FROM $sample_table });
+    notice("$num_rows\n");
+  }
+}
+
+# Find the foreign keys pointing to each table and build up a select
+# clause that fetches all their values.
+my %fk_union;
+foreach my $table (@tables) {
+  my($schema, $table_name) = split /\./, $table, 2;
+
+  # find all foreign keys referencing this table
+  my $sth = $dbh->foreign_key_info(
+    undef, $schema, $table_name, # target table
+    undef, undef, undef,         # fk table
+  ) or next;
+
+  # now group each set of foreign keys by the target column they reference
+  my %fks;
+  while (my $row = lower_keys($sth->fetchrow_hashref)) {
+    my $col = $row->{uk_column_name}; # column fk is pointing to
+    my $fk_table = "$row->{fk_table_schem}.$row->{fk_table_name}";
+    my $fk_col = $row->{fk_column_name};
+
+    push @{ $fks{ $col } }, [$fk_table, $fk_col];
+  }
+
+  # finally, construct a union of all the fk values for each column
+  foreach my $col (keys %fks) {
+    my @union;
+    foreach my $fk (@{ $fks{ $col } }) {
+      my($fk_table, $fk_col) = @$fk;
+      my $sample_fk_table = sample_table($fk_table);
+
+      push @union, qq{
+        SELECT DISTINCT $fk_col
+          FROM $sample_fk_table
+      };
+    }
+
+    $fk_union{ $table }{ $col } = join "\n        UNION\n", @union;
+  }
+}
+
+# Keep inserting rows to satisfy any fk constraints until no more
+# are inserted. This should handle circular references.
+my $num_rows = 1;
+while ($num_rows) {
+  $num_rows = 0;
+
+  foreach my $target_table (sort keys %fk_union) {
+    foreach my $target_col (sort keys %{ $fk_union{ $target_table } }) {
+      my $target_sample_table = sample_table($target_table);
+      my $union = $fk_union{ $target_table }{ $target_col };
+
+      my $query = qq{
+        INSERT INTO $target_sample_table
+             SELECT *
+               FROM $target_table t1
+              WHERE $target_col IN ( -- all foreign key rows to this column 
+                      $union
+                    )
+                    AND NOT EXISTS ( -- except those already in sample table
+                      SELECT 1
+                        FROM $target_sample_table t2
+                       WHERE t1.$target_col = t2.$target_col
+                    )
+      };
+
+      notice(
+        "Inserting $target_table.$target_col rows referenced from FKs... "
+      );
+
+      # warn "$query\n";
+      my $count = $dbh->do($query);
+      notice(($count + 0) . " rows\n");
+
+      $num_rows += $count;
+    } 
+  }
+}
+
+# Most of these were copied from the pg_dump output.
+print <<EOF;
+
+SET client_encoding = '$opt{encoding}';
+SET standard_conforming_strings = off;
+SET check_function_bodies = false;
+SET client_min_messages = warning;
+SET escape_string_warning = off;
+
+EOF
+
+# Disable all foreign key constraints temporarily
+print "\n";
+foreach my $table (@tables) {
+  print "ALTER TABLE $table DISABLE TRIGGER ALL;\n";
+}
+print "\n";
+
+foreach my $table (@tables) {
+  my $sample_table = sample_table($table);
+  notice("Exporting data from $sample_table\n");
+  print "COPY $table FROM stdin;\n";
+  $dbh->do(qq{ COPY $sample_table TO STDOUT });
+  my $buffer = '';
+  print $buffer while $dbh->pg_getcopydata($buffer) >= 0;
+  print "\\.\n\n";
+}
+
+# Re-enable all triggers
+print "\n";
+foreach my $table (@tables) {
+  print "ALTER TABLE $table ENABLE TRIGGER ALL;\n";
+}
+print "\n";
+
+# remove sample tables unless requested not to
+unless ($opt{keep}) {
+  notice("Dropping sample schema $opt{schema}\n");
+  $dbh->do("DROP SCHEMA $opt{schema} CASCADE");
+}
+
+notice("Done.\n");
