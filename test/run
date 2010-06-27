@@ -166,6 +166,6 @@ my $row = $dbh->selectrow_hashref(qq{
 is($row->{name}, "\\.", "Escaping");
 
 $dbh->disconnect;
-eval { $template1_dbh->do("DROP DATABASE $opt{db_name}") };
+$template1_dbh->do("DROP DATABASE $opt{db_name}");
 
 exit 0;
