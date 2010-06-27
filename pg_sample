@@ -32,6 +32,8 @@ PostgreSQL database named "mydb", a sample database could be constructed with:
 
 * pg_dump should be in your search path (in order to dump the schema)
 
+* Perl DBI and DBD::Pg modules
+
 =head2 Command-line Options
 
 =over
