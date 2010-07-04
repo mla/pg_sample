@@ -52,7 +52,7 @@ Output only the data, not the schema (data definitions).
 
 =item B<-E> I<encoding>
 
-=item B<--encoding=>encoding
+=item B<--encoding=>I<encoding>
 
 Use the specified character set encoding. If not specified, uses the
 environment variable PGCLIENTENCODING, if defined; otherwise, uses
