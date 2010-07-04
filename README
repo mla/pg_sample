@@ -38,7 +38,7 @@ DESCRIPTION
         Output only the data, not the schema (data definitions).
 
     -E *encoding*
-    --encoding=encoding
+    --encoding=*encoding*
         Use the specified character set encoding. If not specified, uses the
         environment variable PGCLIENTENCODING, if defined; otherwise, uses
         the encoding of the database.
