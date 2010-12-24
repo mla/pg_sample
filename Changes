@@ -1,0 +1,8 @@
+0.02 Dec 24 2010
+
+  - extended limit option to allow specification of pattern rules
+    to apply different row limits to different tables and schemas.
+
+0.01 Jul 4 2010
+
+  - initial release
