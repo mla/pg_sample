@@ -499,7 +499,7 @@ EOF
 notice("Exporting sequences\n");
 print "\n";
 foreach my $name (sort keys %seq) {
-  print "SELECT pg_catalog.setval('$name', $seq{$name}, false);\n";
+  print "SELECT pg_catalog.setval('$name', $seq{$name});\n";
 }
 print "\n";
 
