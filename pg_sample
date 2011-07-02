@@ -184,6 +184,8 @@ use Carp;
 use Getopt::Long qw/ GetOptions :config no_ignore_case /;
 use DBI;
 
+use vars qw/ $SAMPLE_SCHEMA_CREATED /;
+
 BEGIN {
   # Encapsulate a fully-qualified Postgresql table name
   package Table;
@@ -221,6 +223,12 @@ BEGIN {
       $self->{schema},
       $self->{table},
     );
+  }
+
+  sub unquoted {
+    my $self = shift;
+
+    return join '.', $self->{schema}, $self->{table};
   }
   
   sub schema {
@@ -391,6 +399,7 @@ unless ($opt{'data-only'}) {
 
 notice("Creating sample schema $opt{schema}\n");
 $dbh->do(qq{ CREATE SCHEMA $opt{schema} });
+$SAMPLE_SCHEMA_CREATED = 1;
 
 # parse limit rules
 my @limits;
@@ -415,10 +424,10 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
   next unless uc $row->{table_type} eq 'TABLE'; # skip SYSTEM TABLE values
   next if $row->{table_schem} eq 'information_schema'; # special pg schema
 
-  $row->{table_schem} or die "no table_schem value?!";
-  $row->{table_name} or die "no table_name value?!";
+  $row->{pg_schema} or die "no pg_schema value?!";
+  $row->{pg_table} or die "no pg_table value?!";
 
-  my $table = Table->new($row->{table_schem}, $row->{table_name});
+  my $table = Table->new($row->{pg_schema}, $row->{pg_table});
   push @tables, $table;
 
   my $sample_table = sample_table($table);
@@ -430,7 +439,7 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
   my $where = '1 = 1';
   my $limit = '';
   foreach (@limits) {
-    $table =~ /^$_->[0]$/i || $row->{table_name} =~ /^$_->[0]$/i or next;
+    $table->unquoted =~ /^$_->[0]$/i || $table->table =~ /^$_->[0]$/i or next;
 
     if ($_->[1] eq '*') { # include all rows
       last; 
@@ -595,10 +604,13 @@ foreach my $table (@tables) {
 }
 print "\n";
 
-# remove sample tables unless requested not to
-unless ($opt{keep}) {
-  notice("Dropping sample schema $opt{schema}\n");
-  $dbh->do("DROP SCHEMA $opt{schema} CASCADE");
+# Try to remove sample schema even if script errored out
+END {
+  # remove sample tables unless requested not to
+  if ($SAMPLE_SCHEMA_CREATED and not $opt{keep} and $dbh) {
+    notice("Dropping sample schema $opt{schema}\n");
+    $dbh->do("DROP SCHEMA $opt{schema} CASCADE");
+  }
 }
 
 notice("Done.\n");
