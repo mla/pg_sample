@@ -23,7 +23,7 @@ DESCRIPTION
       pg_sample mydb | psql sampledb
 
   Requirements
-    * PostgreSQL 8.1 or later (for DISABLE/ENABLE TRIGGER support)
+    * PostgreSQL 8.1 or later
 
     * pg_dump should be in your search path (in order to dump the schema)
 
