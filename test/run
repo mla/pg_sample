@@ -141,6 +141,14 @@ $dbh->do(qq{
    WHERE parent_id = 1
 });
 
+# create schema/table/column with reserved names to check quoting
+$dbh->do(qq{ CREATE SCHEMA "where" });
+$dbh->do(qq{
+  CREATE TABLE "where"."group" (
+    "from" text PRIMARY KEY
+  )
+});
+
 my $cmd = "pg_sample --limit=100 $opt{db_name} > sample.sql";
 system($cmd) == 0 or die "pg_sample failed: $?";
 
