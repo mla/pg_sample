@@ -1,3 +1,9 @@
+0.03 Jul 2 2011
+
+  - quote table and column names (thanks to Bricklen)
+
+  - off by one error with setval() call
+
 0.02 Dec 24 2010
 
   - extended limit option to allow specification of pattern rules
