@@ -184,7 +184,78 @@ use Carp;
 use Getopt::Long qw/ GetOptions :config no_ignore_case /;
 use DBI;
 
-our $VERSION = "0.02";
+BEGIN {
+  # Encapsulate a fully-qualified Postgresql table name
+  package Table;
+  
+  use strict;
+  use Carp;
+  use overload '""' => 'quoted'; # interpolation results in quoted version
+  
+  {
+    # dependency injection for access to a database handle
+    my $dbh;
+    sub dbh {
+      my $class = shift;
+    
+      $dbh = shift if @_;
+      return $dbh;
+    }
+  }
+  
+  sub new {
+    my $class = shift;
+  
+    $class = ref($class) || $class;
+    return bless {
+      schema => shift,
+      table => shift,
+    };
+  }
+  
+  sub quoted {
+    my $self = shift;
+  
+    return $self->dbh->quote_identifier(
+      undef,
+      $self->{schema},
+      $self->{table},
+    );
+  }
+  
+  sub schema {
+    my $self = shift;
+  
+    $self->{schema} = shift if @_;
+    return $self->{schema};
+  }
+  
+  sub table {
+    my $self = shift;
+  
+    $self->{table} = shift if @_;
+    return $self->{table};
+  }
+  
+  sub DESTROY {}
+  
+  sub AUTOLOAD {
+    my $self = shift;
+  
+    our $AUTOLOAD;
+    $AUTOLOAD =~ s/.*:://g;
+  
+    if ($AUTOLOAD =~ /^quoted_(.+)$/) {
+      my $method = $1;
+      return $self->dbh->quote_identifier($self->$method);
+    }
+  
+    croak "Can't locate object method \"$AUTOLOAD\" via package " .
+          __PACKAGE__;
+  }
+}
+
+our $VERSION = "0.03";
 
 sub list {
   map { ref $_ eq 'ARRAY' ? @$_ : $_ } @_
@@ -206,7 +277,7 @@ sub connect_db {
     {
       RaiseError       => 1,
       AutoCommit       => 1,
-      FetchHashKeyName => 'NAME_lc',
+      # FetchHashKeyName => 'NAME_lc',
       PrintError       => 0,
       HandleError      => sub { confess( shift ) },
     },
@@ -218,9 +289,6 @@ sub connect_db {
 }
 
 # Return a copy of a hash with all keys lowercased.
-#
-# XXX Not sure why the fk info is coming back uppercase even though
-# FetchHashKeyName is set to NAME_lc on the db handle.
 sub lower_keys($) {
   my $hash = shift or return;
 
@@ -233,18 +301,15 @@ sub lower_keys($) {
 # Encode the actual schema and table name into a new table
 # name lives under our sample schema. e.g., a table like
 # users.details (schema users, table details) would be converted
-# to something like _pg_sample.users__details (depending on the
+# to something like _pg_sample.users_details (depending on the
 # value of --schema).
 #
-# @param fully qualified table name (schema + table)
+# @param Table instance
 sub sample_table($) {
   my $table = shift;
 
-  $table =~ /^[^.]+\.[^.]+$/ or croak "malformed table '$table'";
-
-  $table =~ s/(__|\.)/$1 eq '.' ? '__' : '___'/ge;
-  $table = "$opt{schema}.$table";
-  return $table;
+  my $sample_table = join '_', $table->schema || 'public', $table->table;
+  return Table->new($opt{schema}, $sample_table);
 }
 
 sub notice {
@@ -295,6 +360,7 @@ $opt{db_port}  ||= $ENV{PGPORT} if defined $ENV{PGPORT};
 $opt{encoding} ||= $ENV{PGCLIENTENCODING} if defined $ENV{PGCLIENTENCODING};
 
 my $dbh = connect_db(%opt) or croak "unable to connect to database";
+Table->dbh($dbh);
 
 if ($opt{file}) {
   open STDOUT, '>', $opt{file} or croak "unable to redirect stdout: $!";
@@ -343,6 +409,7 @@ notice("[limit] $_->[0] = $_->[1]\n") foreach @limits;
 # create copies of each table in a separate schema and insert no
 # more than --limit rows initially.
 my @tables;
+my %sample_tables; # real table name -> sample table name
 my $sth = $dbh->table_info(undef, undef, undef, 'TABLE');
 while (my $row = lower_keys($sth->fetchrow_hashref)) {
   next unless uc $row->{table_type} eq 'TABLE'; # skip SYSTEM TABLE values
@@ -351,10 +418,11 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
   $row->{table_schem} or die "no table_schem value?!";
   $row->{table_name} or die "no table_name value?!";
 
-  my $table = "$row->{table_schem}.$row->{table_name}";
+  my $table = Table->new($row->{table_schem}, $row->{table_name});
   push @tables, $table;
 
   my $sample_table = sample_table($table);
+  $sample_tables{ $table } = $sample_table;
 
   notice("Creating table $sample_table ");
 
@@ -395,20 +463,19 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
 # clause that fetches all their values.
 my %fk_union;
 foreach my $table (@tables) {
-  my($schema, $table_name) = split /\./, $table, 2;
-
   # find all foreign keys referencing this table
   my $sth = $dbh->foreign_key_info(
-    undef, $schema, $table_name, # target table
-    undef, undef, undef,         # fk table
+    undef, $table->schema, $table->table, # target table
+    undef, undef, undef,                  # fk table
   ) or next;
 
   # now group each set of foreign keys by the target column they reference
   my %fks;
   while (my $row = lower_keys($sth->fetchrow_hashref)) {
-    my $col = $row->{uk_column_name}; # column fk is pointing to
-    my $fk_table = "$row->{fk_table_schem}.$row->{fk_table_name}";
-    my $fk_col = $row->{fk_column_name};
+    # column fk is pointing to
+    my $col = $dbh->quote_identifier($row->{uk_column_name});
+    my $fk_table = Table->new($row->{fk_table_schem}, $row->{fk_table_name});
+    my $fk_col = $dbh->quote_identifier($row->{fk_column_name});
 
     push @{ $fks{ $col } }, [$fk_table, $fk_col];
   }
@@ -418,7 +485,7 @@ foreach my $table (@tables) {
     my @union;
     foreach my $fk (@{ $fks{ $col } }) {
       my($fk_table, $fk_col) = @$fk;
-      my $sample_fk_table = sample_table($fk_table);
+      my $sample_fk_table = $sample_tables{ $fk_table };
 
       push @union, qq{
         SELECT DISTINCT $fk_col
@@ -438,7 +505,7 @@ while ($num_rows) {
 
   foreach my $target_table (sort keys %fk_union) {
     foreach my $target_col (sort keys %{ $fk_union{ $target_table } }) {
-      my $target_sample_table = sample_table($target_table);
+      my $target_sample_table = $sample_tables{ $target_table };
       my $union = $fk_union{ $target_table }{ $target_col };
 
       my $query = qq{
@@ -478,7 +545,8 @@ $sth = $dbh->prepare(qq{
 $sth->execute;
 my %seq;
 while (my $row = $sth->fetchrow_hashref) {
-  $seq{"$row->{sequence_schema}.$row->{sequence_name}"} = 0;
+  my $name = Table->new($row->{sequence_schema}, $row->{sequence_name});
+  $seq{ $name } = 0;
 }
 foreach my $name (keys %seq) {
   my($lastval) = $dbh->selectrow_array(qq{ SELECT last_value FROM $name });
