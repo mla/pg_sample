@@ -184,7 +184,9 @@ use Carp;
 use Getopt::Long qw/ GetOptions :config no_ignore_case /;
 use DBI;
 
-use vars qw/ $SAMPLE_SCHEMA_CREATED /;
+use vars qw/ $SAMPLE_SCHEMA_CREATED $EXIT_CODE /;
+
+$EXIT_CODE = 1;
 
 BEGIN {
   # Encapsulate a fully-qualified Postgresql table name
@@ -604,15 +606,15 @@ foreach my $table (@tables) {
 }
 print "\n";
 
-# Try to remove sample schema even if script errored out
+$EXIT_CODE = 0;
+
 END {
   # remove sample tables unless requested not to
   if ($SAMPLE_SCHEMA_CREATED and not $opt{keep} and $dbh) {
     notice("Dropping sample schema $opt{schema}\n");
     $dbh->do("DROP SCHEMA $opt{schema} CASCADE");
   }
+
+  notice("Done.\n") if 0 == $EXIT_CODE;
+  exit $EXIT_CODE;
 }
-
-notice("Done.\n");
-
-exit 0;
