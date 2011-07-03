@@ -1,10 +1,8 @@
-0.04 Jul 2 2011
+0.05 Jul 2 2011
 
-  - quote table and column names (thanks to Bricklen)
+  - quote identifiers and constants (thanks to Bricklen)
 
   - off by one error with setval() call
-
-  - try to remove sample schema on abnormal exit
 
 0.02 Dec 24 2010
 
