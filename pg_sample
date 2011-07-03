@@ -262,7 +262,7 @@ BEGIN {
   }
 }
 
-our $VERSION = "0.04";
+our $VERSION = "0.05";
 
 sub list {
   map { ref $_ eq 'ARRAY' ? @$_ : $_ } @_

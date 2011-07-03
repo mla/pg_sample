@@ -4,5 +4,6 @@ version=`grep VERSION pg_sample | head -1 | egrep -o "[.0-9]+" | sed 's/\./-/g'`
 
 tar=pg_sample-$version.tgz
 
-tar --directory=.. --exclude-vcs --exclude=dist --exclude=sample.sql \
-    --exclude=make-dist -zcvf dist/$tar pg_sample
+tar --directory=.. \
+    --files-from ./Manifest \
+    -zcvf dist/$tar
