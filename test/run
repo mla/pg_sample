@@ -148,7 +148,8 @@ $dbh->do(qq{
    WHERE parent_id = 1
 });
 
-# create schema/table/column with reserved names to check quoting
+# create schema/table/column with key words and embedded quotes
+# to test quoting logic
 $dbh->do(qq{ CREATE SCHEMA "S'""chema" });
 $dbh->do(qq{
   CREATE TABLE "S'""chema"."table" (
