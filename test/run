@@ -5,6 +5,7 @@
 our $DB_NAME = '_pg_sample_test';
 
 $ENV{PATH} = "$ENV{PATH}:.:..";
+$ENV{VERBOSITY} = 'terse';
 
 use strict;
 use warnings;
@@ -56,6 +57,7 @@ GetOptions(\%opt,
   "db_host|host=s",
   "db_port|port=i",
   "force",
+  "verbose",
 );
 
 $opt{db_user} ||= $ENV{PGUSER} || scalar getpwuid($<);
@@ -147,14 +149,23 @@ $dbh->do(qq{
 });
 
 # create schema/table/column with reserved names to check quoting
-$dbh->do(qq{ CREATE SCHEMA "where" });
+$dbh->do(qq{ CREATE SCHEMA "S'""chema" });
 $dbh->do(qq{
-  CREATE TABLE "where"."group" (
-    "from" text PRIMARY KEY
+  CREATE TABLE "S'""chema"."table" (
+    "table" text PRIMARY KEY
+  )
+});
+$dbh->do(qq{
+  CREATE TABLE "S'""chema".table_details (
+    table_detail_id serial PRIMARY KEY
+    ,"table" text NOT NULL REFERENCES "S'""chema"."table"
+       ON UPDATE CASCADE ON DELETE CASCADE
   )
 });
 
-my $cmd = "pg_sample --limit=100 $opt{db_name} > sample.sql";
+my @opts = ('--limit=100');
+push @opts, '--verbose' if $opt{verbose};
+my $cmd = "pg_sample @opts $opt{db_name} > sample.sql";
 system($cmd) == 0 or die "pg_sample failed: $?";
 
 $dbh->disconnect;
@@ -162,7 +173,7 @@ $template1_dbh->do("DROP DATABASE $opt{db_name}");
 $template1_dbh->do("CREATE DATABASE $opt{db_name}");
 $dbh = connect_db();
 
-$cmd = "psql $opt{db_name} < sample.sql";
+$cmd = "psql -q $opt{db_name} < sample.sql";
 system($cmd) == 0 or die "pg_sample failed: $?";
 
 foreach (1..10) {
@@ -176,7 +187,7 @@ is($cnt, 1000, "all parent rows should be fetched due to FKs");
 my $row = $dbh->selectrow_hashref(qq{
   SELECT * FROM parent WHERE parent_id = 1
 });
-is($row->{name}, "\\.", "Escaping");
+is($row->{name}, "\\.", "escaping");
 
 $dbh->disconnect;
 $template1_dbh->do("DROP DATABASE $opt{db_name}");

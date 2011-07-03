@@ -9,7 +9,7 @@ database while maintaining referential integrity.
 
 pg_sample [ option... ] [ dbname ]
 
-=head1 DESCRIPTION
+head1 DESCRIPTION
 
 pg_sample is a utility for exporting a small, sample dataset from a
 larger PostgreSQL database. The output and command-line options closely
@@ -184,10 +184,6 @@ use Carp;
 use Getopt::Long qw/ GetOptions :config no_ignore_case /;
 use DBI;
 
-use vars qw/ $SAMPLE_SCHEMA_CREATED $EXIT_CODE /;
-
-$EXIT_CODE = 1;
-
 BEGIN {
   # Encapsulate a fully-qualified Postgresql table name
   package Table;
@@ -227,6 +223,7 @@ BEGIN {
     );
   }
 
+  # only used for command-line matching to keep it simple
   sub unquoted {
     my $self = shift;
 
@@ -306,6 +303,35 @@ sub lower_keys($) {
 
   my %lower = map { lc($_) => $hash->{$_} } keys %$hash;
   return \%lower;
+}
+
+# See "Identifiers and Key Words" section 4.1.1
+# http://www.postgresql.org/docs/8.2/static/sql-syntax-lexical.html
+sub unquote_identifier (@) {
+  my @unquoted;
+  while (@_) {
+    my $val = shift @_;
+    if ($val =~ /^\s*"(.*)"\s*$/) { # looks quoted?
+      $val = $1;
+      $val =~ s/(["\\])\1/$1/g; # undo doubled chars
+    }
+    push @unquoted, $val;
+  }
+
+  return wantarray ? @unquoted : $unquoted[0];
+}
+
+# See "String Constants" section 4.1.2.1
+# http://www.postgresql.org/docs/8.2/static/sql-syntax-lexical.html
+sub quote_constant (@) {
+  my @quoted;
+  while (@_) {
+    my $val = shift @_;
+    $val =~ s/'/''/g;
+    push @quoted, "'$val'";
+  }
+
+  return wantarray ? @quoted: $quoted[0];
 }
 
 # Encode the actual schema and table name into a new table
@@ -401,7 +427,6 @@ unless ($opt{'data-only'}) {
 
 notice("Creating sample schema $opt{schema}\n");
 $dbh->do(qq{ CREATE SCHEMA $opt{schema} });
-$SAMPLE_SCHEMA_CREATED = 1;
 
 # parse limit rules
 my @limits;
@@ -484,9 +509,12 @@ foreach my $table (@tables) {
   my %fks;
   while (my $row = lower_keys($sth->fetchrow_hashref)) {
     # column fk is pointing to
-    my $col = $dbh->quote_identifier($row->{uk_column_name});
-    my $fk_table = Table->new($row->{fk_table_schem}, $row->{fk_table_name});
-    my $fk_col = $dbh->quote_identifier($row->{fk_column_name});
+    my $col = $row->{uk_column_name};
+    my $fk_table = Table->new(
+      unquote_identifier($row->{fk_table_schem}),
+      unquote_identifier($row->{fk_table_name}),
+    );
+    my $fk_col = $row->{fk_column_name};
 
     push @{ $fks{ $col } }, [$fk_table, $fk_col];
   }
@@ -578,7 +606,8 @@ EOF
 notice("Exporting sequences\n");
 print "\n";
 foreach my $name (sort keys %seq) {
-  print "SELECT pg_catalog.setval('$name', $seq{$name});\n";
+  my $constant = quote_constant($name);
+  print "SELECT pg_catalog.setval($constant, $seq{$name});\n";
 }
 print "\n";
 
@@ -606,15 +635,11 @@ foreach my $table (@tables) {
 }
 print "\n";
 
-$EXIT_CODE = 0;
-
-END {
-  # remove sample tables unless requested not to
-  if ($SAMPLE_SCHEMA_CREATED and not $opt{keep} and $dbh) {
-    notice("Dropping sample schema $opt{schema}\n");
-    $dbh->do("DROP SCHEMA $opt{schema} CASCADE");
-  }
-
-  notice("Done.\n") if 0 == $EXIT_CODE;
-  exit $EXIT_CODE;
+# remove sample tables unless requested not to
+unless ($opt{keep}) {
+  notice("Dropping sample schema $opt{schema}\n");
+  $dbh->do("DROP SCHEMA $opt{schema} CASCADE");
 }
+
+notice("Done.\n");
+exit 0;
