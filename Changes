@@ -1,3 +1,9 @@
+0.06
+
+  - look for TABLE_SCHEM and TABLE_NAME from table_info() in addition
+    to pg_schema and pg_table (which are not available in older DBD::Pg
+    versions)
+
 0.05 Jul 2 2011
 
   - quote identifiers and constants (thanks to Bricklen)
