@@ -4,6 +4,8 @@
     to pg_schema and pg_table (which are not available in older DBD::Pg
     versions)
 
+  - fix limit matching (thanks to Bricklen)
+
 0.05 Jul 2 2011
 
   - quote identifiers and constants (thanks to Bricklen)
