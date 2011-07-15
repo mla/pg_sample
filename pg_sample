@@ -472,13 +472,16 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
     $table->unquoted =~ /^$_->[0]$/i || $table->table =~ /^$_->[0]$/i or next;
 
     if ($_->[1] eq '*') { # include all rows
-      last; 
+      $limit = '';
     } elsif ($_->[1] =~ /^\d+$/) { # numeric value turned into LIMIT
       $limit = "LIMIT $_->[1]"; 
     } else { # otherwise treated as subselect
       $where = "($_->[1])";
     }
+
+    last;
   }
+  # warn "\n[LIMIT] $table WHERE $where $limit\n";
 
   my $order = $opt{random} ? 'ORDER BY random()' : '';
 
