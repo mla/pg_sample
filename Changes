@@ -7,7 +7,7 @@
   - fix limit matching (thanks to Bricklen)
 
   - add indexes to sample-table foreign key columns to improve
-    performace
+    performance
 
   - optimized foreign key queries
 
