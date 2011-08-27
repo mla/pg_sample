@@ -513,7 +513,7 @@ foreach my $table (@tables) {
   # There can be multiple rows for a single FK (composite FK)
   my %fks;
   while (my $row = lower_keys($sth->fetchrow_hashref)) {
-    my $target_col = $row->{uk_column_name};
+    my $target_col = $row->{uk_column_name} or croak "no uk_column_name?!";
     my $fk_table = Table->new(
       unquote_identifier($row->{fk_table_schem}),
       unquote_identifier($row->{fk_table_name}),
@@ -525,6 +525,17 @@ foreach my $table (@tables) {
     push @{ $fks{ $fk_name } }, [$fk_col, $target_col];
   }
   push @fks, values %fks;
+}
+
+# create indexes on sample table FKs
+my $idx = 0;
+foreach my $fk (@fks) {
+  my($fk_table, $table, @pairs) = @$fk;
+
+  my $sample_fk_table = $sample_tables{ $fk_table };
+  my $idx_name = $dbh->quote_identifier($opt{schema} . '_idx' . ++$idx);
+  my $fk_cols = join ', ', map { $_->[0] } @pairs;
+  $dbh->do(qq{ CREATE INDEX $idx_name ON $sample_fk_table ($fk_cols) });
 }
 
 # Keep inserting rows to satisfy any fk constraints until no more
@@ -541,30 +552,36 @@ while ($num_rows) {
     my $fk_cols = join ', ', map { $_->[0] } @pairs;
     my $target_cols = join ', ', map { $_->[1] } @pairs;
 
-    my $subselect = qq{
-      SELECT DISTINCT $fk_cols
-                 FROM $sample_fk_table
-    };
+    my $join1 = join ' AND ',
+      map { "f1.$_->[0] = t1.$_->[1]" } @pairs;
+
+    my $join2 = join ' AND ',
+      map { "t1.$_->[1] = s1.$_->[1]" } @pairs;
 
     my $where = join ' AND ',
-      map { "t1.$_->[1] = t2.$_->[1]" } @pairs;
+      map { "s1.$_->[1] IS NULL" } @pairs; 
 
+    # Insert into the sample table all the rows needed to
+    # satisfy the fk table, except those already present.
     my $query = qq{
       INSERT INTO $target_sample_table
-           SELECT *
+           SELECT DISTINCT t1.*
              FROM $target_table t1
-            WHERE ($target_cols) IN (
-                    $subselect
-                  )
-                  AND NOT EXISTS ( -- except those already in sample table
-                    SELECT 1
-                      FROM $target_sample_table t2
-                     WHERE $where
-                  )
+                  JOIN $sample_fk_table f1 ON ($join1)
+                  LEFT JOIN $target_sample_table s1 ON ($join2)
+            WHERE $where
     };
 
+    #warn "\nQUERY:\n$query\n";
+    # my $sth = $dbh->prepare(qq{ EXPLAIN $query });
+    # $sth->execute;
+    # while (my $row = $sth->fetchrow_arrayref) {
+    #   warn @$row, "\n";
+    # }
+    # warn "\n\n";
+
     notice(
-      "Inserting $target_table.$target_cols rows referenced from FKs... "
+      "Copying $target_table ($target_cols) rows referenced from $sample_fk_table ($fk_cols)... "
     );
 
     my $count = $dbh->do($query);
