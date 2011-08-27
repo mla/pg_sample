@@ -11,6 +11,8 @@
 
   - optimized foreign key queries
 
+  - support for composite foreign keys
+
 0.05 Jul 2 2011
 
   - quote identifiers and constants (thanks to Bricklen)
