@@ -501,9 +501,8 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
   }
 }
 
-# Find the foreign keys pointing to each table and build up a select
-# clause that fetches all their values.
-my %fk_union;
+# Find foreign keys
+my @fks;
 foreach my $table (@tables) {
   # find all foreign keys referencing this table
   my $sth = $dbh->foreign_key_info(
@@ -511,35 +510,21 @@ foreach my $table (@tables) {
     undef, undef, undef,                  # fk table
   ) or next;
 
-  # now group each set of foreign keys by the target column they reference
+  # There can be multiple rows for a single FK (composite FK)
   my %fks;
   while (my $row = lower_keys($sth->fetchrow_hashref)) {
-    # column fk is pointing to
-    my $col = $row->{uk_column_name};
+    my $target_col = $row->{uk_column_name};
     my $fk_table = Table->new(
       unquote_identifier($row->{fk_table_schem}),
       unquote_identifier($row->{fk_table_name}),
     );
+    my $fk_name = "$fk_table.$row->{fk_name}"; # unique key to group FK rows
     my $fk_col = $row->{fk_column_name};
 
-    push @{ $fks{ $col } }, [$fk_table, $fk_col];
+    $fks{ $fk_name } ||= [$fk_table, $table];
+    push @{ $fks{ $fk_name } }, [$fk_col, $target_col];
   }
-
-  # finally, construct a union of all the fk values for each column
-  foreach my $col (keys %fks) {
-    my @union;
-    foreach my $fk (@{ $fks{ $col } }) {
-      my($fk_table, $fk_col) = @$fk;
-      my $sample_fk_table = $sample_tables{ $fk_table };
-
-      push @union, qq{
-        SELECT DISTINCT $fk_col
-          FROM $sample_fk_table
-      };
-    }
-
-    $fk_union{ $table }{ $col } = join "\n        UNION\n", @union;
-  }
+  push @fks, values %fks;
 }
 
 # Keep inserting rows to satisfy any fk constraints until no more
@@ -548,36 +533,45 @@ my $num_rows = 1;
 while ($num_rows) {
   $num_rows = 0;
 
-  foreach my $target_table (sort keys %fk_union) {
-    foreach my $target_col (sort keys %{ $fk_union{ $target_table } }) {
-      my $target_sample_table = $sample_tables{ $target_table };
-      my $union = $fk_union{ $target_table }{ $target_col };
+  foreach my $fk (@fks) {
+    my($fk_table, $target_table, @pairs) = @$fk;
+    my $target_sample_table = $sample_tables{ $target_table };
+    my $sample_fk_table = $sample_tables{ $fk_table };
 
-      my $query = qq{
-        INSERT INTO $target_sample_table
-             SELECT *
-               FROM $target_table t1
-              WHERE $target_col IN ( -- all foreign key rows to this column 
-                      $union
-                    )
-                    AND NOT EXISTS ( -- except those already in sample table
-                      SELECT 1
-                        FROM $target_sample_table t2
-                       WHERE t1.$target_col = t2.$target_col
-                    )
-      };
+    my $fk_cols = join ', ', map { $_->[0] } @pairs;
+    my $target_cols = join ', ', map { $_->[1] } @pairs;
 
-      notice(
-        "Inserting $target_table.$target_col rows referenced from FKs... "
-      );
+    my $subselect = qq{
+      SELECT DISTINCT $fk_cols
+                 FROM $sample_fk_table
+    };
 
-      # warn "$query\n";
-      my $count = $dbh->do($query);
-      notice(($count + 0) . " rows\n");
+    my $where = join ' AND ',
+      map { "t1.$_->[1] = t2.$_->[1]" } @pairs;
 
-      $num_rows += $count;
-    } 
-  }
+    my $query = qq{
+      INSERT INTO $target_sample_table
+           SELECT *
+             FROM $target_table t1
+            WHERE ($target_cols) IN (
+                    $subselect
+                  )
+                  AND NOT EXISTS ( -- except those already in sample table
+                    SELECT 1
+                      FROM $target_sample_table t2
+                     WHERE $where
+                  )
+    };
+
+    notice(
+      "Inserting $target_table.$target_cols rows referenced from FKs... "
+    );
+
+    my $count = $dbh->do($query);
+    notice(($count + 0) . " rows\n");
+
+    $num_rows += $count;
+  } 
 }
 
 # fetch all sequences and current values
