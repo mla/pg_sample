@@ -57,7 +57,8 @@ DESCRIPTION
         used.
 
     --unlogged
-        Create sample tables as "UNLOGGED". Note: this option only works in versions of PostgreSQL 9.1+.
+        Create sample tables as "UNLOGGED".
+        Note: this option only works in versions of PostgreSQL 9.1+.
 
     --force
         Drop the sample schema if it exists.
