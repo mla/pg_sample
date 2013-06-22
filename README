@@ -29,6 +29,8 @@ DESCRIPTION
 
     * Perl DBI and DBD::Pg modules
 
+    * The "--unlogged" option requires PostgreSQL version 9.1 or later.
+
   Command-line Options
     *dbname*
         Specifies the database to sample. If not specified, uses the
