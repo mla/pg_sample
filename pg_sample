@@ -50,6 +50,10 @@ the username of the user executing the script.
 
 Output only the data, not the schema (data definitions).
 
+=item B<--help>
+
+Output detailed options and exit.
+
 =item B<-E> I<encoding>
 
 =item B<--encoding=>I<encoding>
@@ -67,6 +71,10 @@ Send output to the specified file. If omitted, standard output is used.
 =item B<--force>
 
 Drop the sample schema if it exists.
+
+=item B<--unlogged>
+
+Create the sample tables as "UNLOGGED". Only available in version 9.1+ of PostgreSQL.
 
 =item B<--keep>
 
@@ -183,6 +191,7 @@ use warnings;
 use Carp;
 use Getopt::Long qw/ GetOptions :config no_ignore_case /;
 use DBI;
+use Pod::Usage;
 
 BEGIN {
   # Encapsulate a fully-qualified Postgresql table name
@@ -379,15 +388,29 @@ GetOptions(\%opt,
   "trace",
   "verbose|v",
   "version|V",
+  "unlogged",
+  "help|h|?|usage",
 );
-push @{ $opt{limit} }, ".* = 100 "; # append default limit rule
 
 if ($opt{version}) {
   print "$VERSION\n";
   exit 0;
 }
+if ($opt{help}) {
+  pod2usage(1);
+  exit 0;
+}
+if ($opt{unlogged}) {
+  my $ver = `pg_dump --version`;
+  $ver or die "Could not determine PostgreSQL version. Aborting.\n";
+  $ver =~ s/[^\d]//g;
+  $ver = substr($ver,0,2);
+  ( $ver >= 91 ) or die 'PostgreSQL version must be >= 9.1 to use the "--unlogged" option.' . "\n";
+}
 
-# @ARGV or die "Usage: $0 [ option... ] [ dbname ]\n";
+@ARGV or die "\nUsage:  $0 [ option... ] [ dbname ]\n\n\t$0 --help for detailed options\n";
+
+push @{ $opt{limit} }, ".* = 100 "; # append default limit rule
 
 $opt{db_user}  ||= $ENV{PGUSER} || scalar getpwuid($<);
 $opt{db_name}  ||= shift() || $ENV{PGDATABASE} || $opt{db_user};
@@ -404,6 +427,11 @@ if ($opt{file}) {
 
 unless ($opt{encoding}) {
   ($opt{encoding}) = $dbh->selectrow_array(qq{ SHOW server_encoding });
+}
+
+my $unlogged = '';
+if ($opt{unlogged}) {
+  $unlogged = 'UNLOGGED';
 }
 
 $dbh->do(qq{ SET client_min_messages = warning }); # suppress notice messages
@@ -466,7 +494,7 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
   notice("Creating table $sample_table ");
 
   # find first matching limit rule
-  my $where = '1 = 1';
+  my $where = 'TRUE';
   my $limit = '';
   foreach (@limits) {
     $table->unquoted =~ /^$_->[0]$/i || $table->table =~ /^$_->[0]$/i or next;
@@ -486,7 +514,7 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
   my $order = $opt{random} ? 'ORDER BY random()' : '';
 
   $dbh->do(qq{
-    CREATE TABLE $sample_table AS
+    CREATE $unlogged TABLE $sample_table AS
           SELECT *
             FROM $table
            WHERE $where
