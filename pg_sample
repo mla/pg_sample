@@ -400,6 +400,13 @@ if ($opt{help}) {
   pod2usage(1);
   exit 0;
 }
+if ($opt{unlogged}) {
+  my $ver = `pg_dump --version`;
+  $ver or die "Could not determine PostgreSQL version. Aborting.\n";
+  $ver =~ s/[^\d]//g;
+  $ver = substr($ver,0,2);
+  ( $ver >= 91 ) or die 'PostgreSQL version must be >= 9.1 to use the "--unlogged" option.' . "\n";
+}
 
 @ARGV or die "\nUsage:  $0 [ option... ] [ dbname ]\n\n\t$0 --help for detailed options\n";
 
