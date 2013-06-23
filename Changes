@@ -1,4 +1,4 @@
-0.07
+1.07 Jun 23, 2013
 
   - Added --help / --h / --usage / --? options to output the "help" using
     pod2usage. (Bricklen Anderson)
