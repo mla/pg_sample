@@ -1,5 +1,7 @@
 #!/usr/bin/perl
 
+our $VERSION = "0.07";
+
 =head1 NAME
 
 pg_sample - extract a small, sample dataset from a larger PostgreSQL
@@ -9,7 +11,7 @@ database while maintaining referential integrity.
 
 pg_sample [ option... ] [ dbname ]
 
-head1 DESCRIPTION
+=head1 DESCRIPTION
 
 pg_sample is a utility for exporting a small, sample dataset from a
 larger PostgreSQL database. The output and command-line options closely
@@ -178,7 +180,8 @@ Maurice Aubrey <maurice.aubrey@gmail.com>
 # (named _pg_sample by default).
 #
 # For each table in the original database, a similarly named table is created
-# in the sample schema, along with a subset of rows (100 rows maximum, by default).
+# in the sample schema, along with a subset of rows (100 rows maximum, by
+# default).
 #
 # Foreign key constraints are then checked, and any rows needed to satisfy them
 # are copied into the sample tables.
@@ -191,7 +194,6 @@ use warnings;
 use Carp;
 use Getopt::Long qw/ GetOptions :config no_ignore_case /;
 use DBI;
-use Pod::Usage;
 
 BEGIN {
   # Encapsulate a fully-qualified Postgresql table name
@@ -271,37 +273,52 @@ BEGIN {
   }
 }
 
-our $VERSION = "0.06";
-
 sub list {
   map { ref $_ eq 'ARRAY' ? @$_ : $_ } @_
 }
 
 my %opt; # closure; all functions have access to options
 
-sub connect_db {
-  my $dsn = join ';',
-    "dbi:Pg:dbname=$opt{db_name}",
-    $opt{db_host} ? "host=$opt{db_host}" : (),
-    $opt{db_port} ? "port=$opt{db_port}" : (),
-  ;
+{
+  my $dbh;
 
-  my $dbh = DBI->connect(
-    $dsn,
-    $opt{db_user},
-    $opt{db_pass},
-    {
-      RaiseError       => 1,
-      AutoCommit       => 1,
-      # FetchHashKeyName => 'NAME_lc',
-      PrintError       => 0,
-      HandleError      => sub { confess( shift ) },
-    },
-  ) or croak "db connection failed!";
+  sub connect_db {
+    return $dbh if $dbh;
 
-  $dbh->trace(1) if defined $opt{trace};
+    my $dsn = join ';',
+      "dbi:Pg:dbname=$opt{db_name}",
+      $opt{db_host} ? "host=$opt{db_host}" : (),
+      $opt{db_port} ? "port=$opt{db_port}" : (),
+    ;
+  
+    $dbh = DBI->connect(
+      $dsn,
+      $opt{db_user},
+      $opt{db_pass},
+      {
+        RaiseError       => 1,
+        AutoCommit       => 1,
+        # FetchHashKeyName => 'NAME_lc',
+        PrintError       => 0,
+        HandleError      => sub { confess( shift ) },
+      },
+    ) or croak "db connection failed!";
+  
+    $dbh->trace(1) if defined $opt{trace};
+  
+    return $dbh;
+  }
+}
 
-  return $dbh;
+# Retrieve PostgreSQL server version.
+# Expect something like:
+#   PostgreSQL 8.4.8 on x86_64-pc-linux-gnu, compiled by GCC gcc-4.6.real (Ubuntu/Linaro 4.6.0-7ubuntu1) 4.6.1, 64-bit
+sub pg_version {
+  my ($ver) = connect_db->selectrow_array("SELECT version()")
+    or croak "request to select postgresql server version failed";
+  $ver =~ /([\d.]+)/ or croak "unable to parse postgresql version from '$ver'";
+
+  return version->declare($1);
 }
 
 # Return a copy of a hash with all keys lowercased.
@@ -344,7 +361,7 @@ sub quote_constant (@) {
 }
 
 # Encode the actual schema and table name into a new table
-# name lives under our sample schema. e.g., a table like
+# name that lives under our sample schema. e.g., a table like
 # users.details (schema users, table details) would be converted
 # to something like _pg_sample.users_details (depending on the
 # value of --schema).
@@ -396,19 +413,15 @@ if ($opt{version}) {
   print "$VERSION\n";
   exit 0;
 }
+
 if ($opt{help}) {
-  pod2usage(1);
+  require Pod::Usage;
+  Pod::Usage::pod2usage(-verbose => 2);
   exit 0;
 }
-if ($opt{unlogged}) {
-  my $ver = `pg_dump --version`;
-  $ver or die "Could not determine PostgreSQL version. Aborting.\n";
-  $ver =~ s/[^\d]//g;
-  $ver = substr($ver,0,2);
-  ( $ver >= 91 ) or die 'PostgreSQL version must be >= 9.1 to use the "--unlogged" option.' . "\n";
-}
 
-@ARGV or die "\nUsage:  $0 [ option... ] [ dbname ]\n\n\t$0 --help for detailed options\n";
+@ARGV or die "\nUsage: $0 [ option... ] [ dbname ]\n\n\t" .
+             "$0 --help for detailed options\n";
 
 push @{ $opt{limit} }, ".* = 100 "; # append default limit rule
 
@@ -421,6 +434,18 @@ $opt{encoding} ||= $ENV{PGCLIENTENCODING} if defined $ENV{PGCLIENTENCODING};
 my $dbh = connect_db(%opt) or croak "unable to connect to database";
 Table->dbh($dbh);
 
+if ($opt{unlogged}) {
+  require version;
+
+  my $required_ver = version->declare('9.1');
+  my $ver = pg_version;
+
+  if ($ver < $required_ver) {
+    die qq{PostgreSQL version must be >= $required_ver } .
+        qq{to use the "--unlogged" option (your version is $ver).\n};
+  }
+}
+
 if ($opt{file}) {
   open STDOUT, '>', $opt{file} or croak "unable to redirect stdout: $!";
 }
@@ -429,10 +454,7 @@ unless ($opt{encoding}) {
   ($opt{encoding}) = $dbh->selectrow_array(qq{ SHOW server_encoding });
 }
 
-my $unlogged = '';
-if ($opt{unlogged}) {
-  $unlogged = 'UNLOGGED';
-}
+my $unlogged = $opt{unlogged} ? 'UNLOGGED' : '';
 
 $dbh->do(qq{ SET client_min_messages = warning }); # suppress notice messages
 if ($opt{force}) {
@@ -515,11 +537,11 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
 
   $dbh->do(qq{
     CREATE $unlogged TABLE $sample_table AS
-          SELECT *
-            FROM $table
-           WHERE $where
-          $order
-          $limit
+           SELECT *
+             FROM $table
+            WHERE $where
+           $order
+           $limit
   });
 
   if ($opt{verbose}) {
@@ -609,7 +631,8 @@ while ($num_rows) {
     # warn "\n\n";
 
     notice(
-      "Copying $target_table ($target_cols) rows referenced from $sample_fk_table ($fk_cols)... "
+      "Copying $target_table ($target_cols) rows referenced from " .
+      "$sample_fk_table ($fk_cols)... "
     );
 
     my $count = $dbh->do($query);

@@ -1,10 +1,19 @@
+0.07
+
+  - Added --help / --h / --usage / --? options to output the "help" using
+    pod2usage. (Bricklen Anderson)
+
+  - Added "UNLOGGED" to the "_pg_sample" table creation commands to reduce
+    the overhead of creating the tables. Could also add in a "TEMPORARY"
+    option to further reduce the impact on the server. (Bricklen Anderson)
+
 0.06 Aug 27, 2011
 
   - look for TABLE_SCHEM and TABLE_NAME from table_info() in addition
     to pg_schema and pg_table (which are not available in older DBD::Pg
     versions)
 
-  - fix limit matching (thanks to Bricklen)
+  - fix limit matching (thanks to Bricklen Anderson)
 
   - add indexes to sample-table foreign key columns to improve
     performance
@@ -15,7 +24,7 @@
 
 0.05 Jul 2 2011
 
-  - quote identifiers and constants (thanks to Bricklen)
+  - quote identifiers and constants (thanks to Bricklen Anderson)
 
   - off by one error with setval() call
 
