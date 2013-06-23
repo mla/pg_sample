@@ -2,13 +2,11 @@
 
 # NOTE: THIS SCRIPT IS DESTRUCTIVE! It will drop and recreate the table
 #
+# Uses TAP testing protocol. See "perldoc prove".
+# To run this test program with prove, you should be able to just do:
 #
-# To run this with "prove" (see man prove):
-#
-#   prove test/run :: --force
-#   prove -v test/run :: --force
-#
-# --force option is needed to suppress interactive input.
+#     prove ./run 
+#  or prove -v ./run
 
 our $DB_NAME = '_pg_sample_test';
 
@@ -21,6 +19,8 @@ use Carp;
 use DBI;
 use Getopt::Long qw/ GetOptions :config no_ignore_case /;
 use Test::More tests => 12;
+
+$| = 1;
 
 my %opt;
 
@@ -78,21 +78,30 @@ $ENV{PGDATABASE} = $opt{db_name};
 $ENV{PGHOST} = $opt{db_host};
 $ENV{PGPORT} = $opt{db_port};
 
+my $template1_dbh = connect_template1();
+
 unless ($opt{force}) {
-  print "Warning: database $opt{db_name} will be dropped.\n";
-  my $ans = '';
-  do {
-    print "Are you sure you want to continue? [Y/n]: ";
-    my $i = lc <STDIN>;
-    chomp $i;
-    $i =~ s/\s+//g;
-    $ans = substr($i, 0, 1);
-    $ans = 'y' unless defined $ans and length $ans;
-  } until ($ans =~ /^[yn]$/);
-  if ($ans eq 'n') { exit 0 }
+  my ($db_exists) = $template1_dbh->selectrow_array(qq{
+    SELECT TRUE
+      FROM pg_database 
+     WHERE datname = ?
+  }, undef, $opt{db_name});
+
+  if ($db_exists) {
+    print STDERR "Warning: database $opt{db_name} will be dropped.\n";
+    my $ans = '';
+    do {
+      print STDERR "Are you sure you want to continue? [Y/n]: ";
+      my $i = lc <STDIN>;
+      chomp $i;
+      $i =~ s/\s+//g;
+      $ans = substr($i, 0, 1);
+      $ans = 'y' unless defined $ans and length $ans;
+    } until ($ans =~ /^[yn]$/);
+    if ($ans eq 'n') { exit 0 }
+  }
 }
 
-my $template1_dbh = connect_template1();
 eval { $template1_dbh->do("DROP DATABASE $opt{db_name}") };
 $template1_dbh->do("CREATE DATABASE $opt{db_name}");
 

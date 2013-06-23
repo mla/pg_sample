@@ -311,7 +311,7 @@ my %opt; # closure; all functions have access to options
 # Expect something like:
 #   PostgreSQL 8.4.8 on x86_64-pc-linux-gnu, compiled by GCC gcc-4.6.real (Ubuntu/Linaro 4.6.0-7ubuntu1) 4.6.1, 64-bit
 sub pg_version {
-  my ($ver) = connect_db->selectrow_array("SELECT version()")
+  my ($ver) = connect_db()->selectrow_array("SELECT version()")
     or croak "request to select postgresql server version failed";
   $ver =~ /([\d.]+)/ or croak "unable to parse postgresql version from '$ver'";
 
