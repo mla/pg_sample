@@ -74,10 +74,6 @@ Send output to the specified file. If omitted, standard output is used.
 
 Drop the sample schema if it exists.
 
-=item B<--unlogged>
-
-Create the sample tables as "UNLOGGED". Only available in version 9.1+ of PostgreSQL.
-
 =item B<--keep>
 
 Don't delete the sample schema when the script finishes.
@@ -194,6 +190,7 @@ use warnings;
 use Carp;
 use Getopt::Long qw/ GetOptions :config no_ignore_case /;
 use DBI;
+use version 0.77;
 
 BEGIN {
   # Encapsulate a fully-qualified Postgresql table name
@@ -405,7 +402,6 @@ GetOptions(\%opt,
   "trace",
   "verbose|v",
   "version|V",
-  "unlogged",
   "help|h|?|usage",
 );
 
@@ -434,17 +430,7 @@ $opt{encoding} ||= $ENV{PGCLIENTENCODING} if defined $ENV{PGCLIENTENCODING};
 my $dbh = connect_db(%opt) or croak "unable to connect to database";
 Table->dbh($dbh);
 
-if ($opt{unlogged}) {
-  require version;
-
-  my $required_ver = version->declare('9.1');
-  my $ver = pg_version;
-
-  if ($ver < $required_ver) {
-    die qq{PostgreSQL version must be >= $required_ver } .
-        qq{to use the "--unlogged" option (your version is $ver).\n};
-  }
-}
+my $pg_version = pg_version;
 
 if ($opt{file}) {
   open STDOUT, '>', $opt{file} or croak "unable to redirect stdout: $!";
@@ -453,8 +439,6 @@ if ($opt{file}) {
 unless ($opt{encoding}) {
   ($opt{encoding}) = $dbh->selectrow_array(qq{ SHOW server_encoding });
 }
-
-my $unlogged = $opt{unlogged} ? 'UNLOGGED' : '';
 
 $dbh->do(qq{ SET client_min_messages = warning }); # suppress notice messages
 if ($opt{force}) {
@@ -474,6 +458,8 @@ unless ($opt{'data-only'}) {
   my $cmd = "pg_dump --schema-only";
   system($cmd) == 0 or croak "command '$cmd' failed: $?";
 }
+
+my $unlogged = $pg_version >= version->declare('9.1') ? 'UNLOGGED' : '';
 
 notice("Creating sample schema $opt{schema}\n");
 $dbh->do(qq{ CREATE SCHEMA $opt{schema} });

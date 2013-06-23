@@ -29,21 +29,18 @@ DESCRIPTION
 
     * Perl DBI and DBD::Pg modules
 
-    * The "--unlogged" option requires PostgreSQL version 9.1 or later.
-
   Command-line Options
     *dbname*
         Specifies the database to sample. If not specified, uses the
         environment variable PGDATABASE, if defined; otherwise, uses the
         username of the user executing the script.
 
-    -h
-    --help
-        Output detailed options and exit.
-
     -a
     --data-only
         Output only the data, not the schema (data definitions).
+
+    --help
+        Output detailed options and exit.
 
     -E *encoding*
     --encoding=*encoding*
@@ -55,10 +52,6 @@ DESCRIPTION
     --file=*file*
         Send output to the specified file. If omitted, standard output is
         used.
-
-    --unlogged
-        Create sample tables as "UNLOGGED".
-        Note: this option only works in versions of PostgreSQL 9.1+.
 
     --force
         Drop the sample schema if it exists.
