@@ -1,6 +1,14 @@
 #!/usr/bin/perl
 
 # NOTE: THIS SCRIPT IS DESTRUCTIVE! It will drop and recreate the table
+#
+#
+# To run this with "prove" (see man prove):
+#
+#   prove test/run :: --force
+#   prove -v test/run :: --force
+#
+# --force option is needed to suppress interactive input.
 
 our $DB_NAME = '_pg_sample_test';
 
