@@ -459,6 +459,7 @@ unless ($opt{'data-only'}) {
   system($cmd) == 0 or croak "command '$cmd' failed: $?";
 }
 
+# If running PostgreSQL 9.1 or later, use UNLOGGED tables
 my $unlogged = $pg_version >= version->declare('9.1') ? 'UNLOGGED' : '';
 
 notice("Creating sample schema $opt{schema}\n");
