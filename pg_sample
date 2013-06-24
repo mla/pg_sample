@@ -199,17 +199,8 @@ BEGIN {
   use strict;
   use Carp;
   use overload '""' => 'quoted'; # interpolation results in quoted version
-  
-  {
-    # dependency injection for access to a database handle
-    my $dbh;
-    sub dbh {
-      my $class = shift;
-    
-      $dbh = shift if @_;
-      return $dbh;
-    }
-  }
+ 
+  *dbh = \&main::connect_db;
   
   sub new {
     my $class = shift;
@@ -277,7 +268,7 @@ sub list {
 my %opt; # closure; all functions have access to options
 
 {
-  my $dbh;
+  my $dbh; # cached db handle
 
   sub connect_db {
     return $dbh if $dbh;
@@ -395,6 +386,7 @@ GetOptions(\%opt,
   "encoding|E=s",
   "file|f=s",
   "force",
+  "help|h|?|usage",
   "keep",
   "limit=s@",
   "random",
@@ -402,7 +394,6 @@ GetOptions(\%opt,
   "trace",
   "verbose|v",
   "version|V",
-  "help|h|?|usage",
 );
 
 if ($opt{version}) {
@@ -428,7 +419,6 @@ $opt{db_port}  ||= $ENV{PGPORT} if defined $ENV{PGPORT};
 $opt{encoding} ||= $ENV{PGCLIENTENCODING} if defined $ENV{PGCLIENTENCODING};
 
 my $dbh = connect_db(%opt) or croak "unable to connect to database";
-Table->dbh($dbh);
 
 my $pg_version = pg_version;
 
