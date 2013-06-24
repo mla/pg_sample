@@ -667,7 +667,6 @@ foreach my $table (@tables) {
   my $sample_table = sample_table($table);
   if ($opt{verbose}) {
     my ($count) = $dbh->selectrow_array("SELECT count(*) FROM $sample_table");
-    $count += 0;
     notice("Exporting data from $sample_table ($count)\n");
   }
   print "COPY $table FROM stdin;\n";
