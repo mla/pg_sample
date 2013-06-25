@@ -422,18 +422,32 @@ my $dbh = connect_db(%opt) or croak "unable to connect to database";
 
 my $pg_version = pg_version;
 
-if ($opt{file}) {
-  open STDOUT, '>', $opt{file} or croak "unable to redirect stdout: $!";
+if ($opt{schema} eq 'public') {
+  die "Error: refusing to use 'public' schema for sampling.\n";
 }
 
-unless ($opt{encoding}) {
-  ($opt{encoding}) = $dbh->selectrow_array(qq{ SHOW server_encoding });
+my ($schema_oid) = $dbh->selectrow_array(qq{
+  SELECT oid 
+    FROM pg_catalog.pg_namespace
+   WHERE nspname = ?
+}, undef, $opt{schema});
+if ($schema_oid && !$opt{force}) {
+  die "Error: schema '$opt{schema}' already exists. " .
+      "Use --force option to overwrite.\n";
 }
 
 $dbh->do(qq{ SET client_min_messages = warning }); # suppress notice messages
 if ($opt{force}) {
   notice("Dropping sample schema $opt{schema}\n");
   $dbh->do(qq{ DROP SCHEMA IF EXISTS $opt{schema} CASCADE });
+}
+
+if ($opt{file}) {
+  open STDOUT, '>', $opt{file} or croak "unable to redirect stdout: $!";
+}
+
+unless ($opt{encoding}) {
+  ($opt{encoding}) = $dbh->selectrow_array(qq{ SHOW server_encoding });
 }
 
 unless ($opt{'data-only'}) {
