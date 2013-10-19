@@ -1,6 +1,5 @@
 language: perl
-perl:
-  - "5.16"
-  - "5.14"
 services: postgresql
-script: env PGUSER=postgres prove -v
+env: PGUSER=postgres
+install: true
+script: prove -v
