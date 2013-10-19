@@ -377,12 +377,12 @@ sub notice {
 );
 
 GetOptions(\%opt,
-  "data-only|a",
-  "db_name=s",
-  "db_user|db_username|username|U=s",
-  "db_pass|db_password|password|W=s",
-  "db_host|host=s",
-  "db_port|port=i",
+  "data-only|data_only|a",
+  "db_name|db-name=s",
+  "db_user|db-user|db_username|db-username|username|U=s",
+  "db_pass|db-pass|db_password|db-password|password|W=s",
+  "db_host|db-host|host=s",
+  "db_port|db-port|port=i",
   "encoding|E=s",
   "file|f=s",
   "force",

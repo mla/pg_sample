@@ -1,12 +1,20 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 # NOTE: THIS SCRIPT IS DESTRUCTIVE! It will drop and recreate the table
 #
 # Uses TAP testing protocol. See "perldoc prove".
-# To run this test program with prove, you should be able to just do:
 #
-#     prove ./run 
-#  or prove -v ./run
+# To run this test program with prove, you should be able to just run 'prove'
+# or 'prove -v' from the top-level directory.
+#
+# Or, to supply options (such as database connection info), you can also
+# run it directly:
+#
+#   t/pg_sample.t --db_user=foo
+#
+# The --cover option will generate code covereage statistics (see Devel::Cover)
+# 
+#   t/pg_sample.t --cover
 
 our $DB_NAME = '_pg_sample_test';
 
@@ -59,13 +67,14 @@ sub connect_template1 {
 );
 
 GetOptions(\%opt,
-  "db_name=s",
-  "db_user|db_username|username|U=s",
-  "db_pass|db_password|password|W=s",
-  "db_host|host=s",
-  "db_port|port=i",
-  "force",
-  "verbose",
+  'db_name=s',
+  'db_user|db_username|db-user|db-username|username|U=s',
+  'db_pass|db_password|db-pass|db-password|password|W=s',
+  'db_host|db-host|host=s',
+  'db_port|db-port|port=i',
+  'force',
+  'verbose',
+  'cover|coverage|testcover',
 );
 
 $opt{db_user} ||= $ENV{PGUSER} || scalar getpwuid($<);
@@ -180,6 +189,11 @@ $dbh->do(qq{
        ON UPDATE CASCADE ON DELETE CASCADE
   )
 });
+
+# Perform code coverage analysis? Requires Devel::Cover module.
+if ($opt{cover}) {
+  $ENV{PERL5OPT} .= ' -MDevel::Cover=+select,pg_sample,+ignore,.*';
+}
 
 my @opts = ('--limit=100');
 push @opts, '--verbose' if $opt{verbose};
