@@ -1,5 +1,5 @@
 language: perl
 services: postgresql
 env: PGUSER=postgres
-install: true
+install: cpanm --notest DBI DBD::Pg
 script: prove -v
