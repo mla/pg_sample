@@ -146,7 +146,7 @@ This code is released under the Artistic License. See [perlartistic](http://sear
 
 # SEE ALSO
 
-[createdb(1)](http://man.he.net/man1/createdb), [pg\_dump(1)](http://man.he.net/man1/pg\_dump), [psql(1)](http://man.he.net/man1/psql)
+createdb(1), pg\_dump(1), psql(1)
 
 # AUTHOR
 
