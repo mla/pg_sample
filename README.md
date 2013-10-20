@@ -34,18 +34,18 @@ PostgreSQL database named "mydb", a sample database could be constructed with:
 
 ## Command-line Options
 
-- _dbname_
+_dbname_
 
     Specifies the database to sample. If not specified, uses the
     environment variable PGDATABASE, if defined; otherwise, uses
     the username of the user executing the script.
 
-- __\-a__  
-  __\--data-only__
+__\-a__  
+__\--data-only__
 
     Output only the data, not the schema (data definitions).
 
-- __\--help__
+__\--help__
 
     Output detailed options and exit.
 
