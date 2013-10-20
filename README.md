@@ -34,7 +34,7 @@ PostgreSQL database named "mydb", a sample database could be constructed with:
 
 ## Command-line Options
 
-- _dbname_
+  _dbname_
 
     Specifies the database to sample. If not specified, uses the
     environment variable PGDATABASE, if defined; otherwise, uses
