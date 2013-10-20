@@ -67,7 +67,7 @@ sub connect_template1 {
 );
 
 GetOptions(\%opt,
-  'db_name|db-name|=s',
+  'db_name|db-name=s',
   'db_user|db_username|db-user|db-username|username|U=s',
   'db_pass|db_password|db-pass|db-password|password|W=s',
   'db_host|db-host|host=s',
