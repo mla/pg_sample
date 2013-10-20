@@ -49,27 +49,27 @@ __\--help__
 
     Output detailed options and exit.
 
-- __\-E__ _encoding_  
-  __\--encoding=___encoding_
+__\-E__ _encoding_  
+__\--encoding=___encoding_
 
     Use the specified character set encoding. If not specified, uses the
     environment variable PGCLIENTENCODING, if defined; otherwise, uses
     the encoding of the database.
 
-- __\-f__ _file_  
-  __\--file=___file_
+__\-f__ _file_  
+__\--file=___file_
 
     Send output to the specified file. If omitted, standard output is used.
 
-- __\--force__
+__\--force__
 
     Drop the sample schema if it exists.
 
-- __\--keep__
+__\--keep__
 
     Don't delete the sample schema when the script finishes.
 
-- __\--limit=___limit_
+__\--limit=___limit_
 
     As a numeric value, specifies the default number of rows to copy from
     each table (defaults to 100). Note that sample tables may end up with
@@ -99,44 +99,44 @@ __\--help__
 
     Rules are applied in order with the first match taking precedence.
 
-- __\--random__
+__\--random__
 
     Randomize the rows initially selected from each table. May significantly
     increase the running time of the script.
 
-- __\--schema=___name_
+__\--schema=___name_
 
     The schema name to use for the sample database (defaults to \_pg\_sample).
 
-- __\--trace__
+__\--trace__
 
     Turn on Perl DBI tracing. See the DBI module documentation for details.
 
-- __\--verbose__
+__\--verbose__
 
     Output status information to standard error.
 
 The following options control the database connection parameters.
 
-- __\-h__ _host_  
-  __\--host__=_host_
+__\-h__ _host_  
+__\--host__=_host_
 
     The host name to connect to. Defaults to the PGHOST environment
     variable if not specified.
 
-- __\-p__ _port_  
-  __\--port=___port_
+__\-p__ _port_  
+__\--port=___port_
 
     The database port to connect to. Defaults to the PGPORT environment
     variable, if set; otherwise, the default port is used.
 
-- __\-U__ _username_  
-  __\--username=___username_
+__\-U__ _username_  
+__\--username=___username_
 
     User name to connect as.
 
-- __\-W__ _password_  
-  __\-password=___password_
+__\-W__ _password_  
+__\-password=___password_
 
     Password to connect with.
 
