@@ -55,7 +55,7 @@ __\--encoding=___encoding_
     the encoding of the database.
 
 __\-f__ _file_  
-__\--file=__ _file_
+__\--file=___file_
 
     Send output to the specified file. If omitted, standard output is used.
 
