@@ -49,15 +49,15 @@ PostgreSQL database named "mydb", a sample database could be constructed with:
 
     Output detailed options and exit.
 
-- __\-E__ _encoding_
-- __\--encoding=___encoding_
+- __\-E__ _encoding_  
+  __\--encoding=___encoding_
 
     Use the specified character set encoding. If not specified, uses the
     environment variable PGCLIENTENCODING, if defined; otherwise, uses
     the encoding of the database.
 
-- __\-f__ _file_
-- __\--file=___file_
+- __\-f__ _file_  
+  __\--file=___file_
 
     Send output to the specified file. If omitted, standard output is used.
 
@@ -118,25 +118,25 @@ PostgreSQL database named "mydb", a sample database could be constructed with:
 
 The following options control the database connection parameters.
 
-- __\-h__ _host_
-- __\--host__=_host_
+- __\-h__ _host_  
+  __\--host__=_host_
 
     The host name to connect to. Defaults to the PGHOST environment
     variable if not specified.
 
-- __\-p__ _port_
-- __\--port=___port_
+- __\-p__ _port_  
+  __\--port=___port_
 
     The database port to connect to. Defaults to the PGPORT environment
     variable, if set; otherwise, the default port is used.
 
-- __\-U__ _username_
-- __\--username=___username_
+- __\-U__ _username_  
+  __\--username=___username_
 
     User name to connect as.
 
-- __\-W__ _password_
-- __\-password=___password_
+- __\-W__ _password_  
+  __\-password=___password_
 
     Password to connect with.
 
