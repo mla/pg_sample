@@ -40,7 +40,7 @@ PostgreSQL database named "mydb", a sample database could be constructed with:
     environment variable PGDATABASE, if defined; otherwise, uses
     the username of the user executing the script.
 
-- __\-a__
+- __\-a__  
   __\--data-only__
 
     Output only the data, not the schema (data definitions).
