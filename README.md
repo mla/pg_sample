@@ -48,7 +48,7 @@ __\--help__
     Output detailed options and exit.
 
 __\-E__ _encoding_  
-__\--encoding=___encoding_
+__\--encoding=__*encoding*
 
     Use the specified character set encoding. If not specified, uses the
     environment variable PGCLIENTENCODING, if defined; otherwise, uses
@@ -67,7 +67,7 @@ __\--keep__
 
     Don't delete the sample schema when the script finishes.
 
-__\--limit=___limit_
+__\--limit=__*limit*
 
     As a numeric value, specifies the default number of rows to copy from
     each table (defaults to 100). Note that sample tables may end up with
@@ -102,7 +102,7 @@ __\--random__
     Randomize the rows initially selected from each table. May significantly
     increase the running time of the script.
 
-__\--schema=___name_
+__\--schema=__*name*
 
     The schema name to use for the sample database (defaults to \_pg\_sample).
 
@@ -117,24 +117,24 @@ __\--verbose__
 The following options control the database connection parameters.
 
 __\-h__ _host_  
-__\--host__=_host_
+__\--host=__*host*
 
     The host name to connect to. Defaults to the PGHOST environment
     variable if not specified.
 
 __\-p__ _port_  
-__\--port=___port_
+__\--port=__*port*
 
     The database port to connect to. Defaults to the PGPORT environment
     variable, if set; otherwise, the default port is used.
 
 __\-U__ _username_  
-__\--username=___username_
+__\--username=__*username*
 
     User name to connect as.
 
 __\-W__ _password_  
-__\-password=___password_
+__\-password=__*password*
 
     Password to connect with.
 
