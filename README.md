@@ -26,9 +26,9 @@ PostgreSQL database named "mydb", a sample database could be constructed with:
 
 ## Requirements
 
-\* PostgreSQL 8.1 or later
-\* pg\_dump should be in your search path (in order to dump the schema)
-\* Perl DBI and DBD::Pg modules
+- PostgreSQL 8.1 or later
+- pg\_dump should be in your search path (in order to dump the schema)
+- Perl DBI and DBD::Pg modules
 
 ## Command-line Options
 
