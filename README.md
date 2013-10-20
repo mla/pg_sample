@@ -133,3 +133,5 @@ SEE ALSO
 AUTHOR
     Maurice Aubrey <maurice.aubrey@gmail.com>
 
+[![Build Status](https://travis-ci.org/mla/pg_sample.png)]
+(https://travis-ci.org/mla/pg_sample)
