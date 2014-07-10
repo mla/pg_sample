@@ -16,8 +16,6 @@ SET escape_string_warning = off;
 CREATE SCHEMA "S'""chema";
 
 
-ALTER SCHEMA "S'""chema" OWNER TO mla;
-
 SET search_path = "S'""chema", pg_catalog;
 
 SET default_tablespace = '';
@@ -33,8 +31,6 @@ CREATE TABLE "table" (
 );
 
 
-ALTER TABLE "S'""chema"."table" OWNER TO mla;
-
 --
 -- Name: table_details; Type: TABLE; Schema: S'"chema; Owner: mla; Tablespace: 
 --
@@ -44,8 +40,6 @@ CREATE TABLE table_details (
     "table" text NOT NULL
 );
 
-
-ALTER TABLE "S'""chema".table_details OWNER TO mla;
 
 --
 -- Name: table_details_table_detail_id_seq; Type: SEQUENCE; Schema: S'"chema; Owner: mla
@@ -58,8 +52,6 @@ CREATE SEQUENCE table_details_table_detail_id_seq
     NO MINVALUE
     CACHE 1;
 
-
-ALTER TABLE "S'""chema".table_details_table_detail_id_seq OWNER TO mla;
 
 --
 -- Name: table_details_table_detail_id_seq; Type: SEQUENCE OWNED BY; Schema: S'"chema; Owner: mla
@@ -81,8 +73,6 @@ CREATE TABLE child1 (
 );
 
 
-ALTER TABLE public.child1 OWNER TO mla;
-
 --
 -- Name: child10; Type: TABLE; Schema: public; Owner: mla; Tablespace: 
 --
@@ -93,8 +83,6 @@ CREATE TABLE child10 (
     parent_id integer
 );
 
-
-ALTER TABLE public.child10 OWNER TO mla;
 
 --
 -- Name: child2; Type: TABLE; Schema: public; Owner: mla; Tablespace: 
@@ -107,8 +95,6 @@ CREATE TABLE child2 (
 );
 
 
-ALTER TABLE public.child2 OWNER TO mla;
-
 --
 -- Name: child3; Type: TABLE; Schema: public; Owner: mla; Tablespace: 
 --
@@ -119,8 +105,6 @@ CREATE TABLE child3 (
     parent_id integer
 );
 
-
-ALTER TABLE public.child3 OWNER TO mla;
 
 --
 -- Name: child4; Type: TABLE; Schema: public; Owner: mla; Tablespace: 
@@ -133,8 +117,6 @@ CREATE TABLE child4 (
 );
 
 
-ALTER TABLE public.child4 OWNER TO mla;
-
 --
 -- Name: child5; Type: TABLE; Schema: public; Owner: mla; Tablespace: 
 --
@@ -145,8 +127,6 @@ CREATE TABLE child5 (
     parent_id integer
 );
 
-
-ALTER TABLE public.child5 OWNER TO mla;
 
 --
 -- Name: child6; Type: TABLE; Schema: public; Owner: mla; Tablespace: 
@@ -159,8 +139,6 @@ CREATE TABLE child6 (
 );
 
 
-ALTER TABLE public.child6 OWNER TO mla;
-
 --
 -- Name: child7; Type: TABLE; Schema: public; Owner: mla; Tablespace: 
 --
@@ -171,8 +149,6 @@ CREATE TABLE child7 (
     parent_id integer
 );
 
-
-ALTER TABLE public.child7 OWNER TO mla;
 
 --
 -- Name: child8; Type: TABLE; Schema: public; Owner: mla; Tablespace: 
@@ -185,8 +161,6 @@ CREATE TABLE child8 (
 );
 
 
-ALTER TABLE public.child8 OWNER TO mla;
-
 --
 -- Name: child9; Type: TABLE; Schema: public; Owner: mla; Tablespace: 
 --
@@ -198,8 +172,6 @@ CREATE TABLE child9 (
 );
 
 
-ALTER TABLE public.child9 OWNER TO mla;
-
 --
 -- Name: parent; Type: TABLE; Schema: public; Owner: mla; Tablespace: 
 --
@@ -210,8 +182,6 @@ CREATE TABLE parent (
     favorite_child_id integer
 );
 
-
-ALTER TABLE public.parent OWNER TO mla;
 
 SET search_path = "S'""chema", pg_catalog;
 

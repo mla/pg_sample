@@ -12,7 +12,7 @@
 #
 #   t/pg_sample.t --db_user=foo
 #
-# The --cover option will generate code covereage statistics (see Devel::Cover)
+# The --cover option will generate code coverage statistics (see Devel::Cover)
 # 
 #   t/pg_sample.t --cover
 

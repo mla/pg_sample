@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 
-our $VERSION = "1.07";
+our $VERSION = "1.08";
 
 =head1 NAME
 
@@ -34,7 +34,7 @@ PostgreSQL database named "mydb", a sample database could be constructed with:
 
 * pg_dump should be in your search path (in order to dump the schema)
 
-* Perl DBI and DBD::Pg modules
+* Perl DBI and DBD::Pg (>= 2.0) modules
 
 =head2 Command-line Options
 
@@ -190,7 +190,12 @@ use warnings;
 use Carp;
 use Getopt::Long qw/ GetOptions :config no_ignore_case /;
 use DBI;
-use version 0.77;
+use DBD::Pg 2.0.0;
+
+$SIG{TERM} = $SIG{INT} = $SIG{QUIT} = $SIG{HUP} = sub {
+  my $signal = shift;
+  die "Received signal '$signal'; cleaning up and terminating.\n";
+};
 
 BEGIN {
   # Encapsulate a fully-qualified Postgresql table name
@@ -355,7 +360,7 @@ sub quote_constant (@) {
 # value of --schema).
 #
 # @param Table instance
-sub sample_table($) {
+sub sample_table ($) {
   my $table = shift;
 
   my $sample_table = join '_', $table->schema || 'public', $table->table;
@@ -468,6 +473,7 @@ my $unlogged = $pg_version >= version->declare('9.1') ? 'UNLOGGED' : '';
 
 notice("Creating sample schema $opt{schema}\n");
 $dbh->do(qq{ CREATE SCHEMA $opt{schema} });
+my $created_schema = 1; # keep track that we actually did it; see END block
 
 # parse limit rules
 my @limits;
@@ -697,11 +703,13 @@ foreach my $table (@tables) {
 }
 print "\n";
 
-# remove sample tables unless requested not to
-unless ($opt{keep}) {
-  notice("Dropping sample schema $opt{schema}\n");
-  $dbh->do("DROP SCHEMA $opt{schema} CASCADE");
-}
-
 notice("Done.\n");
 exit 0;
+
+END {
+  # remove sample tables unless requested not to
+  if ($created_schema && !$opt{keep}) {
+    notice("Dropping sample schema $opt{schema}\n");
+    $dbh->do("DROP SCHEMA $opt{schema} CASCADE");
+  }
+}

@@ -1,3 +1,10 @@
+1.08 Jul 10, 2014
+
+  - Require DBD::Pg >= 2. Prior versions lacked pg_getcopydata and the
+    table_info() interface was different.
+  - Removed SET OWNER declarations in tests (t/sample.sql)
+  - Trap exit signals and try to clean up anything we created (Joe Van Dyk)
+
 1.07 Jun 23, 2013
 
   - Added --help / --h / --usage / --? options to output the "help" using
