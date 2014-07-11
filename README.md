@@ -104,7 +104,7 @@ __\--random__
 
 __\--schema=__*name*
 
-    The schema name to use for the sample database (defaults to \_pg\_sample).
+    The schema name to use for the sample database (defaults to _pg_sample).
 
 __\--trace__
 

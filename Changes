@@ -1,3 +1,10 @@
+1.09 Jul 10, 2014
+
+  - Set STDOUT character encoding
+  - Add protype for notice function
+  - Silence "use of uninitialized value" warning
+  - Add verbose messages for client and server encodings
+
 1.08 Jul 10, 2014
 
   - Require DBD::Pg >= 2. Prior versions lacked pg_getcopydata and the
