@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 
-our $VERSION = "1.08";
+our $VERSION = "1.09";
 
 =head1 NAME
 
@@ -367,7 +367,7 @@ sub sample_table ($) {
   return Table->new($opt{schema}, $sample_table);
 }
 
-sub notice {
+sub notice (@) {
   return unless $opt{verbose};
   print STDERR join "", @_;
 }
@@ -443,7 +443,7 @@ if ($schema_oid && !$opt{force}) {
 
 $dbh->do(qq{ SET client_min_messages = warning }); # suppress notice messages
 if ($opt{force}) {
-  notice("Dropping sample schema $opt{schema}\n");
+  notice "Dropping sample schema $opt{schema}\n";
   $dbh->do(qq{ DROP SCHEMA IF EXISTS $opt{schema} CASCADE });
 }
 
@@ -451,12 +451,15 @@ if ($opt{file}) {
   open STDOUT, '>', $opt{file} or croak "unable to redirect stdout: $!";
 }
 
-unless ($opt{encoding}) {
-  ($opt{encoding}) = $dbh->selectrow_array(qq{ SHOW server_encoding });
-}
+my ($server_encoding) = $dbh->selectrow_array(qq{ SHOW server_encoding });
+notice "Server encoding is $server_encoding\n";
+
+$opt{encoding} ||= $server_encoding;
+notice "Client encoding is $opt{encoding}\n";
+binmode STDOUT, ":encoding($opt{encoding})";
 
 unless ($opt{'data-only'}) {
-  notice("Exporting schema\n");
+  notice "Exporting schema\n";
 
   local $ENV{PGUSER} = $opt{db_user};
   local $ENV{PGDATABASE} = $opt{db_name};
@@ -471,7 +474,7 @@ unless ($opt{'data-only'}) {
 # If running PostgreSQL 9.1 or later, use UNLOGGED tables
 my $unlogged = $pg_version >= version->declare('9.1') ? 'UNLOGGED' : '';
 
-notice("Creating sample schema $opt{schema}\n");
+notice "Creating sample schema $opt{schema}\n";
 $dbh->do(qq{ CREATE SCHEMA $opt{schema} });
 my $created_schema = 1; # keep track that we actually did it; see END block
 
@@ -487,7 +490,7 @@ foreach my $limit (grep { /\S/ } map { split /\s*,\s*/ } list($opt{limit})) {
 
   push @limits, [$match, $rule];
 }
-notice("[limit] $_->[0] = $_->[1]\n") foreach @limits;
+notice "[limit] $_->[0] = $_->[1]\n" foreach @limits;
 
 # create copies of each table in a separate schema and insert no
 # more than --limit rows initially.
@@ -510,7 +513,7 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
   my $sample_table = sample_table($table);
   $sample_tables{ $table } = $sample_table;
 
-  notice("Creating table $sample_table ");
+  notice "Creating table $sample_table ";
 
   # find first matching limit rule
   my $where = 'TRUE';
@@ -544,7 +547,7 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
   if ($opt{verbose}) {
     my ($num_rows) =
       $dbh->selectrow_array(qq{ SELECT count(*) FROM $sample_table });
-    notice("$num_rows\n");
+    notice "$num_rows\n";
   }
 }
 
@@ -627,13 +630,13 @@ while ($num_rows) {
     # }
     # warn "\n\n";
 
-    notice(
+    notice
       "Copying $target_table ($target_cols) rows referenced from " .
       "$sample_fk_table ($fk_cols)... "
-    );
+    ;
 
-    my $count = $dbh->do($query);
-    notice(($count + 0) . " rows\n");
+    my $count = $dbh->do($query) || 0;
+    notice "$count rows\n";
 
     $num_rows += $count;
   } 
@@ -668,7 +671,7 @@ SET escape_string_warning = off;
 
 EOF
 
-notice("Exporting sequences\n");
+notice "Exporting sequences\n";
 print "\n";
 foreach my $name (sort keys %seq) {
   my $constant = quote_constant($name);
@@ -687,7 +690,7 @@ foreach my $table (@tables) {
   my $sample_table = sample_table($table);
   if ($opt{verbose}) {
     my ($count) = $dbh->selectrow_array("SELECT count(*) FROM $sample_table");
-    notice("Exporting data from $sample_table ($count)\n");
+    notice "Exporting data from $sample_table ($count)\n";
   }
   print "COPY $table FROM stdin;\n";
   $dbh->do(qq{ COPY $sample_table TO STDOUT });
@@ -703,13 +706,13 @@ foreach my $table (@tables) {
 }
 print "\n";
 
-notice("Done.\n");
-exit 0;
-
 END {
   # remove sample tables unless requested not to
   if ($created_schema && !$opt{keep}) {
-    notice("Dropping sample schema $opt{schema}\n");
+    notice "Dropping sample schema $opt{schema}\n";
     $dbh->do("DROP SCHEMA $opt{schema} CASCADE");
   }
+
+  notice "Done.\n";
+  exit 0;
 }
