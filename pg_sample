@@ -112,6 +112,16 @@ Rules are applied in order with the first match taking precedence.
 Randomize the rows initially selected from each table. May significantly
 increase the running time of the script.
 
+=item B<--pkey-asc>
+
+Get the beginning of each table ordered by Primary Key.
+
+=item B<--pkey-desc>
+
+Get the ending of each table ordered by Primary Key, e.g. you can get only
+fresh data from your production database. Notice than --pkey-asc and --pkey-desc
+will reorder data in resulting dump file respectively.
+
 =item B<--schema=>I<name>
 
 The schema name to use for the sample database (defaults to _pg_sample).
@@ -394,6 +404,8 @@ GetOptions(\%opt,
   "help|h|?|usage",
   "keep",
   "limit=s@",
+  "pkey-asc|pkey_asc",
+  "pkey-desc|pkey_asc",
   "random",
   "schema=s",
   "trace",
@@ -532,8 +544,23 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
     last;
   }
   # warn "\n[LIMIT] $table WHERE $where $limit\n";
+  my ($pkey) = $dbh->selectrow_array(qq{
+    SELECT a.attname 
+      FROM   pg_index i
+      JOIN   pg_attribute a ON a.attrelid = i.indrelid
+                     AND a.attnum = ANY(i.indkey)
+    WHERE  i.indrelid = '$table'::regclass
+      AND    i.indisprimary
+  }); 
 
   my $order = $opt{random} ? 'ORDER BY random()' : '';
+  if ($pkey) {
+    if ($opt{'pkey-asc'}) {
+      $order = "ORDER BY $pkey ASC";
+    } elsif ($opt{'pkey-desc'}) {
+      $order = "ORDER BY $pkey DESC";
+    }
+  }
 
   $dbh->do(qq{
     CREATE $unlogged TABLE $sample_table AS
