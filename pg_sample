@@ -618,14 +618,42 @@ foreach (@tables) {
     }
   }
 
-  $dbh->do(qq{
-    CREATE $unlogged TABLE $sample_table AS
-           SELECT *
-             FROM $table
-            WHERE $where
-           $order
-           $limit
+  my ($parent) = $dbh->selectrow_array(qq{
+    SELECT p.relname AS parent
+      FROM pg_inherits 
+      JOIN pg_class AS c ON (inhrelid=c.oid)
+      JOIN pg_class as p ON (inhparent=p.oid)
+      JOIN pg_namespace pn ON pn.oid = p.relnamespace
+      JOIN pg_namespace cn ON cn.oid = c.relnamespace
+      WHERE c.relname = '$table->{table}' and pn.nspname = '$table->{schema}'
   });
+  #notice "\ntable $table parent = $parent\n";
+
+  if ($parent) {
+    notice "(as child of $parent) ";
+    # at first create a child table
+    $dbh->do(qq{
+      CREATE $unlogged TABLE $sample_table () INHERITS ("$opt{schema}"."$table->{schema}_$parent")
+    });
+    # fill it up with sample data
+    $dbh->do(qq{
+      INSERT INTO $sample_table 
+             SELECT *
+               FROM $table
+              WHERE $where
+             $order
+             $limit      
+    });
+  } else {
+    $dbh->do(qq{
+      CREATE $unlogged TABLE $sample_table AS
+             SELECT *
+               FROM $table
+              WHERE $where
+             $order
+             $limit
+    });
+  }
 
   if ($opt{verbose}) {
     my ($num_rows) =
