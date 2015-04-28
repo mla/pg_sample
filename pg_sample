@@ -107,6 +107,17 @@ pairs can also be specified as a single comma-separated value. For example:
 
 Rules are applied in order with the first match taking precedence.
 
+Note that sample rows with foreign keys will automatically include referencing
+foreign rows.
+
+If your tables are denormalized and don't have foreign keys then you can
+use subqueries.
+
+  # include all users where uids are in exported table "users_posts"
+  --limit="users = uid IN (SELECT uid FROM _pg_sample.public_users_posts)"
+
+Export of such tables will be postponed untill all the samples will be present.
+
 =item B<--random>
 
 Randomize the rows initially selected from each table. May significantly
@@ -509,6 +520,9 @@ notice "[limit] $_->[0] = $_->[1]\n" foreach @limits;
 my @tables;
 my %sample_tables; # real table name -> sample table name
 my $sth = $dbh->table_info(undef, undef, undef, 'TABLE');
+my @delayed_tables;
+my @delayed_tables_ordered;
+
 while (my $row = lower_keys($sth->fetchrow_hashref)) {
   next unless uc $row->{table_type} eq 'TABLE'; # skip SYSTEM TABLE values
   next if $row->{table_schem} eq 'information_schema'; # special pg schema
@@ -520,8 +534,50 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
     or die "no pg_table or TABLE_NAME value?!";
 
   my $table = Table->new($sname, $tname);
-  push @tables, $table;
+  
+  # if table match limit one of limit rule, delaying
+  my $has_limit_rule = 0;
+  foreach (@limits) {
+    $table->unquoted =~ /^$_->[0]$/i || $table->table =~ /^$_->[0]$/i or next;
+    if ($_->[1] =~ /select/i) {
+      $has_limit_rule = 1;
+    }
+  }
+  
+  if ($has_limit_rule > 0) {
+    push @delayed_tables, $table;
+  } else {
+    push @tables, $table;
+  }
+}
 
+# Re-ordering delayed tables as they were specified in limit rules
+foreach (@limits) {
+  my $limit_table = $_->[0];
+  next if $limit_table ~~ /^\.\*/;
+  foreach(@delayed_tables) {
+    if ($_->table =~ /^$limit_table$/i) {
+      my $match_table = $_;
+      my $in_array = 0;
+      foreach(@delayed_tables_ordered) {
+        if($_->table =~ /^$match_table->table$/) {
+          $in_array++;
+        }
+      }
+      if (!$in_array) {
+        #print "\n ADDING $_ \n\n";
+        push @delayed_tables_ordered, $match_table;
+      }
+    }
+  }
+}
+
+foreach (@delayed_tables_ordered) {
+  push @tables, $_;
+}
+
+foreach (@tables) {
+  my $table = $_;
   my $sample_table = sample_table($table);
   $sample_tables{ $table } = $sample_table;
 
@@ -536,7 +592,7 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
     if ($_->[1] eq '*') { # include all rows
       $limit = '';
     } elsif ($_->[1] =~ /^\d+$/) { # numeric value turned into LIMIT
-      $limit = "LIMIT $_->[1]"; 
+      $limit = "LIMIT $_->[1]";
     } else { # otherwise treated as subselect
       $where = "($_->[1])";
     }
@@ -545,13 +601,13 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
   }
   # warn "\n[LIMIT] $table WHERE $where $limit\n";
   my ($pkey) = $dbh->selectrow_array(qq{
-    SELECT a.attname 
+    SELECT a.attname
       FROM   pg_index i
       JOIN   pg_attribute a ON a.attrelid = i.indrelid
                      AND a.attnum = ANY(i.indkey)
     WHERE  i.indrelid = '$table'::regclass
       AND    i.indisprimary
-  }); 
+  });
 
   my $order = $opt{random} ? 'ORDER BY random()' : '';
   if ($pkey) {
