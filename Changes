@@ -1,4 +1,7 @@
 1.10
+  - Change DISTINCT to DISTINCT ON to accommodate JSON columns, which don't
+    currently have an equality operator (causing unqualified DISTINCT on tables
+    with json columns to fail).
 
 1.09 Jul 10, 2014
 
