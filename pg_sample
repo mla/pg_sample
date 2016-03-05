@@ -504,6 +504,8 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
   my $sname = $row->{pg_schema} || unquote_identifier($row->{TABLE_SCHEM})
     or die "no pg_schema or TABLE_SCHEM value?!";
 
+  next if $sname eq 'pg_catalog';
+
   my $tname = $row->{pg_table} || unquote_identifier($row->{TABLE_NAME})
     or die "no pg_table or TABLE_NAME value?!";
 
@@ -615,7 +617,8 @@ while ($num_rows) {
     # satisfy the fk table, except those already present.
     my $query = qq{
       INSERT INTO $target_sample_table
-           SELECT DISTINCT t1.*
+           SELECT DISTINCT ON ($target_cols)
+                  t1.*
              FROM $target_table t1
                   JOIN $sample_fk_table f1 ON ($join1)
                   LEFT JOIN $target_sample_table s1 ON ($join2)
