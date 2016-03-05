@@ -117,7 +117,10 @@ $template1_dbh->do("CREATE DATABASE $opt{db_name}");
 my $dbh = connect_db();
 $dbh->do(qq{ SET client_min_messages = warning });
 
-# Does our server support JSON data type?
+# Does server support JSON data type?
+# There was a problem with DISTINCT on tables with JSON columns due
+# to lack of equality operator.
+# See https://github.com/mla/pg_sample/issues/5
 eval {
   $dbh->do("CREATE TEMP TABLE temp_json_test (foo json)");
 };
