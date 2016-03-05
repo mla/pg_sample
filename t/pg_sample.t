@@ -117,11 +117,19 @@ $template1_dbh->do("CREATE DATABASE $opt{db_name}");
 my $dbh = connect_db();
 $dbh->do(qq{ SET client_min_messages = warning });
 
+# Does our server support JSON data type?
+eval {
+  $dbh->do("CREATE TEMP TABLE temp_json_test (foo json)");
+};
+my $has_json = $@ ? 0 : 1;
+diag $has_json ? 'JSON support detected' : 'JSON support not detected';
+
 $dbh->do(qq{
   CREATE TABLE parent (
-    parent_id integer PRIMARY KEY
-    ,name text NOT NULL UNIQUE
+    parent_id          integer PRIMARY KEY
+    ,name              text    NOT NULL UNIQUE
     ,favorite_child_id integer
+    ,data              @{[ $has_json ? 'json' : 'text' ]}
   )
 });
 
@@ -129,8 +137,8 @@ $dbh->do(qq{
 foreach (1..10) {
   $dbh->do(qq{
     CREATE TABLE child$_ (
-      child_id integer PRIMARY KEY
-      ,name text NOT NULL UNIQUE
+      child_id   integer PRIMARY KEY
+      ,name      text    NOT NULL UNIQUE
       ,parent_id integer REFERENCES parent ON UPDATE CASCADE
     )
   });
