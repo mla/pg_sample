@@ -208,7 +208,7 @@ if ($opt{cover}) {
 
 my @opts = ('--limit=100');
 push @opts, '--verbose' if $opt{verbose};
-my $cmd = "pg_sample @opts $opt{db_name} > sample.sql";
+my $cmd = "pg_sample @opts $opt{db_name} > t/sample.sql";
 system($cmd) == 0 or die "pg_sample failed: $?";
 
 $dbh->disconnect;
@@ -216,7 +216,7 @@ $template1_dbh->do("DROP DATABASE $opt{db_name}");
 $template1_dbh->do("CREATE DATABASE $opt{db_name}");
 $dbh = connect_db();
 
-$cmd = "psql -q $opt{db_name} < sample.sql";
+$cmd = "psql -q $opt{db_name} < t/sample.sql";
 system($cmd) == 0 or die "pg_sample failed: $?";
 
 foreach (1..10) {
