@@ -1,6 +1,6 @@
+pg_sample/Makefile
 pg_sample/Changes
 pg_sample/Manifest
 pg_sample/README.md
 pg_sample/pg_sample
 pg_sample/t/pg_sample.t
-pg_sample/t/sample.sql
