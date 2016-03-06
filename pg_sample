@@ -451,6 +451,9 @@ if ($opt{file}) {
   open STDOUT, '>', $opt{file} or croak "unable to redirect stdout: $!";
 }
 
+notice "Perl $^V\n";
+notice "DBD::Pg ", DBD::Pg->VERSION, "\n";
+
 my ($server_encoding) = $dbh->selectrow_array(qq{ SHOW server_encoding });
 notice "Server encoding is $server_encoding\n";
 
