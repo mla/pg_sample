@@ -512,7 +512,9 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
   my $sname = $row->{pg_schema} || unquote_identifier($row->{TABLE_SCHEM})
     or die "no pg_schema or TABLE_SCHEM value?!";
 
-  next if $sname eq 'pg_catalog';
+  # Pg docs: Schema names beginning with pg_ are reserved for system
+  # purposes and cannot be created by users.
+  next if $sname =~ /^pg_/;
 
   my $tname = $row->{pg_table} || unquote_identifier($row->{TABLE_NAME})
     or die "no pg_table or TABLE_NAME value?!";
