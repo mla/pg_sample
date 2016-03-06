@@ -369,7 +369,10 @@ sub sample_table ($) {
 
 sub notice (@) {
   return unless $opt{verbose};
-  print STDERR join "", @_;
+  print STDERR join '',
+    map { ref $_ && $_->can('unquoted') ? $_->unquoted : $_ }
+    @_,
+  ;
 }
 
 %opt = (
@@ -520,7 +523,7 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
   my $sample_table = sample_table($table);
   $sample_tables{ $table } = $sample_table;
 
-  notice "Creating table $sample_table ";
+  notice "Creating table ", $sample_table, " ";
 
   # find first matching limit rule
   my $where = 'TRUE';
@@ -558,6 +561,7 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
   }
 }
 
+notice "Finding foreign keys...\n";
 # Find foreign keys
 my @fks;
 foreach my $table (@tables) {
@@ -582,6 +586,14 @@ foreach my $table (@tables) {
     push @{ $fks{ $fk_name } }, [$fk_col, $target_col];
   }
   push @fks, values %fks;
+}
+if ($opt{verbose}) {
+  foreach my $fk (@fks) {
+    my ($fk_table, $table, @pairs) = @$fk;
+    my $fk_cols = join ', ', map { $_->[0] } @pairs;
+    my $table_cols = join ', ', map { $_->[1] } @pairs;
+    notice "  ", $fk_table, " ($fk_cols) -> ", $table, " ($table_cols)\n";
+  }
 }
 
 # create indexes on sample table FKs
@@ -639,8 +651,8 @@ while ($num_rows) {
     # warn "\n\n";
 
     notice
-      "Copying $target_table ($target_cols) rows referenced from " .
-      "$sample_fk_table ($fk_cols)... "
+      "Copying ", $target_table, " ($target_cols) rows referenced from ",
+      $sample_fk_table, " ($fk_cols)... "
     ;
 
     my $count = $dbh->do($query) || 0;
@@ -698,7 +710,7 @@ foreach my $table (@tables) {
   my $sample_table = sample_table($table);
   if ($opt{verbose}) {
     my ($count) = $dbh->selectrow_array("SELECT count(*) FROM $sample_table");
-    notice "Exporting data from $sample_table ($count)\n";
+    notice "Exporting data from ", $sample_table, " ($count)\n";
   }
   print "COPY $table FROM stdin;\n";
   $dbh->do(qq{ COPY $sample_table TO STDOUT });
