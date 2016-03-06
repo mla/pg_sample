@@ -459,7 +459,8 @@ notice "Server encoding is $server_encoding\n";
 
 $opt{encoding} ||= $server_encoding;
 notice "Client encoding is $opt{encoding}\n";
-binmode STDOUT, ":encoding($opt{encoding})";
+binmode STDOUT, ":encoding($opt{encoding})"
+  or croak "Failed to set binmode \"$opt{encoding}\" on STDOUT: $!";
 
 unless ($opt{'data-only'}) {
   notice "Exporting schema\n";
