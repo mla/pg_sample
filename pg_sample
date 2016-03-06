@@ -452,6 +452,7 @@ if ($opt{file}) {
 }
 
 notice "Perl $^V\n";
+notice "DBI ", DBI->VERSION, "\n";
 notice "DBD::Pg ", DBD::Pg->VERSION, "\n";
 
 my ($server_encoding) = $dbh->selectrow_array(qq{ SHOW server_encoding });
