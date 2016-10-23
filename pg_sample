@@ -394,6 +394,7 @@ GetOptions(\%opt,
   "help|h|?|usage",
   "keep",
   "limit=s@",
+  "no-privileges|no-acl|x",
   "random",
   "schema=s",
   "trace",
@@ -467,8 +468,9 @@ unless ($opt{'data-only'}) {
   local $ENV{PGPORT} = $opt{db_port};
   local $ENV{PGCLIENTENCODING} = $opt{encoding};
 
-  my $cmd = "pg_dump --schema-only";
-  system($cmd) == 0 or croak "command '$cmd' failed: $?";
+  my @cmd = ('pg_dump', '--schema-only');
+  push @cmd, '--no-privileges' if $opt{'no-privileges'};
+  system(@cmd) == 0 or croak "command '@cmd' failed: $?";
 }
 
 # If running PostgreSQL 9.1 or later, use UNLOGGED tables
