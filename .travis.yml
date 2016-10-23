@@ -1,6 +1,6 @@
 language: perl
 perl:
- - 5.19
+ - 5.22
  - 5.14
  - 5.8
 services: postgresql
