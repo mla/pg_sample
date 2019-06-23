@@ -1,3 +1,8 @@
+1.10 Jun 23, 2019
+
+  - Made -h option be an alias for --host and not for --help to be
+    consistent with pg_dump (thanks to @dmitry-at-publons)
+
 1.09 Jul 10, 2014
 
   - Set STDOUT character encoding
