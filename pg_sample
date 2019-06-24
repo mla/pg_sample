@@ -107,10 +107,31 @@ pairs can also be specified as a single comma-separated value. For example:
 
 Rules are applied in order with the first match taking precedence.
 
+Note that sample rows with foreign keys will automatically include referencing
+foreign rows.
+
+If your tables are denormalized and don't have foreign keys then you can
+use subqueries.
+
+  # include all users where uids are in exported table "users_posts"
+  --limit="users = uid IN (SELECT uid FROM _pg_sample.public_users_posts)"
+
+Export of such tables will be postponed untill all the samples will be present.
+
 =item B<--random>
 
 Randomize the rows initially selected from each table. May significantly
 increase the running time of the script.
+
+=item B<--pkey-asc>
+
+Get the beginning of each table ordered by Primary Key.
+
+=item B<--pkey-desc>
+
+Get the ending of each table ordered by Primary Key, e.g. you can get only
+fresh data from your production database. Notice than --pkey-asc and --pkey-desc
+will reorder data in resulting dump file respectively.
 
 =item B<--schema=>I<name>
 
@@ -394,6 +415,8 @@ GetOptions(\%opt,
   "help|?|usage",
   "keep",
   "limit=s@",
+  "pkey-asc|pkey_asc",
+  "pkey-desc|pkey_asc",
   "random",
   "schema=s",
   "trace",
@@ -456,7 +479,7 @@ notice "Server encoding is $server_encoding\n";
 
 $opt{encoding} ||= $server_encoding;
 notice "Client encoding is $opt{encoding}\n";
-binmode STDOUT, ":encoding($opt{encoding})";
+binmode STDOUT, ":encoding($opt{encoding})" if ! $opt{encoding} =~ /utf[\-]8/i;
 
 unless ($opt{'data-only'}) {
   notice "Exporting schema\n";
@@ -497,6 +520,9 @@ notice "[limit] $_->[0] = $_->[1]\n" foreach @limits;
 my @tables;
 my %sample_tables; # real table name -> sample table name
 my $sth = $dbh->table_info(undef, undef, undef, 'TABLE');
+my @delayed_tables;
+my @delayed_tables_ordered;
+
 while (my $row = lower_keys($sth->fetchrow_hashref)) {
   next unless uc $row->{table_type} eq 'TABLE'; # skip SYSTEM TABLE values
   next if $row->{table_schem} eq 'information_schema'; # special pg schema
@@ -508,8 +534,50 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
     or die "no pg_table or TABLE_NAME value?!";
 
   my $table = Table->new($sname, $tname);
-  push @tables, $table;
+  
+  # if table match limit one of limit rule, delaying
+  my $has_limit_rule = 0;
+  foreach (@limits) {
+    $table->unquoted =~ /^$_->[0]$/i || $table->table =~ /^$_->[0]$/i or next;
+    if ($_->[1] =~ /select/i) {
+      $has_limit_rule = 1;
+    }
+  }
+  
+  if ($has_limit_rule > 0) {
+    push @delayed_tables, $table;
+  } else {
+    push @tables, $table;
+  }
+}
 
+# Re-ordering delayed tables as they were specified in limit rules
+foreach (@limits) {
+  my $limit_table = $_->[0];
+  next if $limit_table ~~ /^\.\*/;
+  foreach(@delayed_tables) {
+    if ($_->table =~ /^$limit_table$/i) {
+      my $match_table = $_;
+      my $in_array = 0;
+      foreach(@delayed_tables_ordered) {
+        if($_->table =~ /^$match_table->table$/) {
+          $in_array++;
+        }
+      }
+      if (!$in_array) {
+        #print "\n ADDING $_ \n\n";
+        push @delayed_tables_ordered, $match_table;
+      }
+    }
+  }
+}
+
+foreach (@delayed_tables_ordered) {
+  push @tables, $_;
+}
+
+foreach (@tables) {
+  my $table = $_;
   my $sample_table = sample_table($table);
   $sample_tables{ $table } = $sample_table;
 
@@ -524,7 +592,7 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
     if ($_->[1] eq '*') { # include all rows
       $limit = '';
     } elsif ($_->[1] =~ /^\d+$/) { # numeric value turned into LIMIT
-      $limit = "LIMIT $_->[1]"; 
+      $limit = "LIMIT $_->[1]";
     } else { # otherwise treated as subselect
       $where = "($_->[1])";
     }
@@ -532,17 +600,60 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
     last;
   }
   # warn "\n[LIMIT] $table WHERE $where $limit\n";
+  my ($pkey) = $dbh->selectrow_array(qq{
+    SELECT a.attname
+      FROM   pg_index i
+      JOIN   pg_attribute a ON a.attrelid = i.indrelid
+                     AND a.attnum = ANY(i.indkey)
+    WHERE  i.indrelid = '$table'::regclass
+      AND    i.indisprimary
+  });
 
   my $order = $opt{random} ? 'ORDER BY random()' : '';
+  if ($pkey) {
+    if ($opt{'pkey-asc'}) {
+      $order = "ORDER BY $pkey ASC";
+    } elsif ($opt{'pkey-desc'}) {
+      $order = "ORDER BY $pkey DESC";
+    }
+  }
 
-  $dbh->do(qq{
-    CREATE $unlogged TABLE $sample_table AS
-           SELECT *
-             FROM $table
-            WHERE $where
-           $order
-           $limit
+  my ($parent) = $dbh->selectrow_array(qq{
+    SELECT p.relname AS parent
+      FROM pg_inherits 
+      JOIN pg_class AS c ON (inhrelid=c.oid)
+      JOIN pg_class as p ON (inhparent=p.oid)
+      JOIN pg_namespace pn ON pn.oid = p.relnamespace
+      JOIN pg_namespace cn ON cn.oid = c.relnamespace
+      WHERE c.relname = '$table->{table}' and pn.nspname = '$table->{schema}'
   });
+  #notice "\ntable $table parent = $parent\n";
+
+  if ($parent) {
+    notice "(as child of $parent) ";
+    # at first create a child table
+    $dbh->do(qq{
+      CREATE $unlogged TABLE $sample_table () INHERITS ("$opt{schema}"."$table->{schema}_$parent")
+    });
+    # fill it up with sample data
+    $dbh->do(qq{
+      INSERT INTO $sample_table 
+             SELECT *
+               FROM $table
+              WHERE $where
+             $order
+             $limit      
+    });
+  } else {
+    $dbh->do(qq{
+      CREATE $unlogged TABLE $sample_table AS
+             SELECT *
+               FROM $table
+              WHERE $where
+             $order
+             $limit
+    });
+  }
 
   if ($opt{verbose}) {
     my ($num_rows) =
