@@ -83,11 +83,18 @@ __\--limit=__*limit*
         # include 1,000 rows from users table
         --limit="users = 1000"
 
+        # include 10% of the total rows from users table
+        --limit="users = 10%"
+
         # include all users where deactivated column is false
         --limit="users = NOT deactivated"
 
         # include all rows from all tables in the forums schema
         --limit="forums.* = *"
+
+        # include 5% of total rows from each table in log schema
+        # and 50% to the rest of tables
+        --limit="log.* = 5%, * = 50%"
 
     The limit option may be specified multiple times. Multiple pattern/rule
     pairs can also be specified as a single comma-separated value. For example:
