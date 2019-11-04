@@ -3,8 +3,6 @@ perl:
  - 5.28
  - 5.26
  - 5.18
- - 5.14
- - 5.8
 services: postgresql
 env: PGUSER=postgres
 install: cpanm --notest DBI DBD::Pg
