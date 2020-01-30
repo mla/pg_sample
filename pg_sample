@@ -112,7 +112,12 @@ Rules are applied in order with the first match taking precedence.
 Randomize the rows initially selected from each table. May significantly
 increase the running time of the script.
 
-=item B<--schema=>I<name>
+=item B<--schema=>n<schema>
+
+The name of shcema to which the sampling will be limited. 
+If not specified all schemas will be sampled.
+
+=item B<--sample-schema=>I<name>
 
 The schema name to use for the sample database (defaults to _pg_sample).
 
@@ -364,7 +369,7 @@ sub sample_table ($) {
   my $table = shift;
 
   my $sample_table = join '_', $table->schema || 'public', $table->table;
-  return Table->new($opt{schema}, $sample_table);
+  return Table->new($opt{sample_schema}, $sample_table);
 }
 
 sub notice (@) {
@@ -377,7 +382,8 @@ sub notice (@) {
   db_port => '',
   keep => 0,
   random => 0,
-  schema => '_pg_sample',
+  schema => undef,
+  sample_schema => '_pg_sample',
   verbose => 0,
 );
 
@@ -395,11 +401,13 @@ GetOptions(\%opt,
   "keep",
   "limit=s@",
   "random",
+  "sample_schema=s",
   "schema=s",
   "trace",
   "verbose|v",
   "version|V",
 );
+
 
 if ($opt{version}) {
   print "$VERSION\n";
@@ -427,7 +435,8 @@ my $dbh = connect_db(%opt) or croak "unable to connect to database";
 
 my $pg_version = pg_version;
 
-if ($opt{schema} eq 'public') {
+if ($opt{sample_schema} eq 'public') {
+  # TODO worth check if smbd won't destroy one of exisitin db schemas !!!!
   die "Error: refusing to use 'public' schema for sampling.\n";
 }
 
@@ -435,16 +444,16 @@ my ($schema_oid) = $dbh->selectrow_array(qq{
   SELECT oid 
     FROM pg_catalog.pg_namespace
    WHERE nspname = ?
-}, undef, $opt{schema});
+}, undef, $opt{sample_schema});
 if ($schema_oid && !$opt{force}) {
-  die "Error: schema '$opt{schema}' already exists. " .
+  die "Error: schema '$opt{sample_schema}' already exists. " .
       "Use --force option to overwrite.\n";
 }
 
 $dbh->do(qq{ SET client_min_messages = warning }); # suppress notice messages
 if ($opt{force}) {
-  notice "Dropping sample schema $opt{schema}\n";
-  $dbh->do(qq{ DROP SCHEMA IF EXISTS $opt{schema} CASCADE });
+  notice "Dropping sample schema $opt{sample_schema}\n";
+  $dbh->do(qq{ DROP SCHEMA IF EXISTS $opt{sample_schema} CASCADE });
 }
 
 if ($opt{file}) {
@@ -474,8 +483,8 @@ unless ($opt{'data-only'}) {
 # If running PostgreSQL 9.1 or later, use UNLOGGED tables
 my $unlogged = $pg_version >= version->declare('9.1') ? 'UNLOGGED' : '';
 
-notice "Creating sample schema $opt{schema}\n";
-$dbh->do(qq{ CREATE SCHEMA $opt{schema} });
+notice "Creating sample schema $opt{sample_schema}\n";
+$dbh->do(qq{ CREATE SCHEMA $opt{sample_schema} });
 my $created_schema = 1; # keep track that we actually did it; see END block
 
 # parse limit rules
@@ -500,6 +509,7 @@ my $sth = $dbh->table_info(undef, undef, undef, 'TABLE');
 while (my $row = lower_keys($sth->fetchrow_hashref)) {
   next unless uc $row->{table_type} eq 'TABLE'; # skip SYSTEM TABLE values
   next if $row->{table_schem} eq 'information_schema'; # special pg schema
+  next if ($opt{schema}) && $row->{table_schem} ne $opt{schema};
 
   my $sname = $row->{pg_schema} || unquote_identifier($row->{TABLE_SCHEM})
     or die "no pg_schema or TABLE_SCHEM value?!";
@@ -589,7 +599,7 @@ foreach my $fk (@fks) {
   my ($fk_table, $table, @pairs) = @$fk;
 
   my $sample_fk_table = $sample_tables{ $fk_table };
-  my $idx_name = $dbh->quote_identifier($opt{schema} . '_idx' . ++$idx);
+  my $idx_name = $dbh->quote_identifier($opt{sample_schema} . '_idx' . ++$idx);
   my $fk_cols = join ', ', map { $_->[0] } @pairs;
   $dbh->do(qq{ CREATE INDEX $idx_name ON $sample_fk_table ($fk_cols) });
 }
@@ -715,8 +725,8 @@ print "\n";
 END {
   # remove sample tables unless requested not to
   if ($created_schema && !$opt{keep}) {
-    notice "Dropping sample schema $opt{schema}\n";
-    $dbh->do("DROP SCHEMA $opt{schema} CASCADE");
+    notice "Dropping sample schema $opt{sample_schema}\n";
+    $dbh->do("DROP SCHEMA $opt{sample_schema} CASCADE");
   }
 
   notice "Done.\n";
