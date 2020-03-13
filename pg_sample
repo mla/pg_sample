@@ -89,7 +89,7 @@ apply to matching tables. Examples:
 
   # include all rows from the users table
   --limit="users = *"
- 
+
   # include 1,000 rows from users table
   --limit="users = 1000"
 
@@ -200,26 +200,26 @@ $SIG{TERM} = $SIG{INT} = $SIG{QUIT} = $SIG{HUP} = sub {
 BEGIN {
   # Encapsulate a fully-qualified Postgresql table name
   package Table;
-  
+
   use strict;
   use Carp;
   use overload '""' => 'quoted'; # interpolation results in quoted version
- 
+
   *dbh = \&main::connect_db;
-  
+
   sub new {
     my $class = shift;
-  
+
     $class = ref($class) || $class;
     return bless {
       schema => shift,
       table => shift,
     };
   }
-  
+
   sub quoted {
     my $self = shift;
-  
+
     return $self->dbh->quote_identifier(
       undef,
       $self->{schema},
@@ -233,34 +233,34 @@ BEGIN {
 
     return join '.', $self->{schema}, $self->{table};
   }
-  
+
   sub schema {
     my $self = shift;
-  
+
     $self->{schema} = shift if @_;
     return $self->{schema};
   }
-  
+
   sub table {
     my $self = shift;
-  
+
     $self->{table} = shift if @_;
     return $self->{table};
   }
-  
+
   sub DESTROY {}
-  
+
   sub AUTOLOAD {
     my $self = shift;
-  
+
     our $AUTOLOAD;
     $AUTOLOAD =~ s/.*:://g;
-  
+
     if ($AUTOLOAD =~ /^quoted_(.+)$/) {
       my $method = $1;
       return $self->dbh->quote_identifier($self->$method);
     }
-  
+
     croak "Can't locate object method \"$AUTOLOAD\" via package " .
           __PACKAGE__;
   }
@@ -283,7 +283,7 @@ my %opt; # closure; all functions have access to options
       $opt{db_host} ? "host=$opt{db_host}" : (),
       $opt{db_port} ? "port=$opt{db_port}" : (),
     ;
-  
+
     $dbh = DBI->connect(
       $dsn,
       $opt{db_user},
@@ -296,9 +296,9 @@ my %opt; # closure; all functions have access to options
         HandleError      => sub { confess( shift ) },
       },
     ) or croak "db connection failed!";
-  
+
     $dbh->trace(1) if defined $opt{trace};
-  
+
     return $dbh;
   }
 }
@@ -432,7 +432,7 @@ if ($opt{schema} eq 'public') {
 }
 
 my ($schema_oid) = $dbh->selectrow_array(qq{
-  SELECT oid 
+  SELECT oid
     FROM pg_catalog.pg_namespace
    WHERE nspname = ?
 }, undef, $opt{schema});
@@ -524,13 +524,13 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
     if ($_->[1] eq '*') { # include all rows
       $limit = '';
     } elsif ($_->[1] =~ /^\d+$/) { # numeric value turned into LIMIT
-      $limit = "LIMIT $_->[1]";   
+      $limit = "LIMIT $_->[1]";
     } elsif ($_->[1] =~ /^\d+%$/) { # percent value turned into LIMIT
       my ($table_num_rows) = $dbh->selectrow_array(qq{ SELECT count(*) FROM $table });
       my $percent = (substr $_->[1], 0, (length $_->[1]) - 1) / 100;
       my $total_rows = int($table_num_rows * $percent);
-      
-      $limit = "LIMIT $total_rows"; 
+
+      $limit = "LIMIT $total_rows";
     } else { # otherwise treated as subselect
       $where = "($_->[1])";
     }
@@ -566,6 +566,9 @@ foreach my $table (@tables) {
     undef, undef, undef,                  # fk table
   ) or next;
 
+  my $sth_pm = $dbh->primary_key_info(undef, $table->schema, $table->table)->fetchrow_hashref;
+  my $pm_key = $sth_pm->{COLUMN_NAME};
+
   # There can be multiple rows for a single FK (composite FK)
   my %fks;
   while (my $row = lower_keys($sth->fetchrow_hashref)) {
@@ -577,7 +580,7 @@ foreach my $table (@tables) {
     my $fk_name = "$fk_table.$row->{fk_name}"; # unique key to group FK rows
     my $fk_col = $row->{fk_column_name};
 
-    $fks{ $fk_name } ||= [$fk_table, $table];
+    $fks{ $fk_name } ||= [$fk_table, $table, $pm_key];
     push @{ $fks{ $fk_name } }, [$fk_col, $target_col];
   }
   push @fks, values %fks;
@@ -586,7 +589,7 @@ foreach my $table (@tables) {
 # create indexes on sample table FKs
 my $idx = 0;
 foreach my $fk (@fks) {
-  my ($fk_table, $table, @pairs) = @$fk;
+  my ($fk_table, $table, $pm_key, @pairs) = @$fk;
 
   my $sample_fk_table = $sample_tables{ $fk_table };
   my $idx_name = $dbh->quote_identifier($opt{schema} . '_idx' . ++$idx);
@@ -601,7 +604,7 @@ while ($num_rows) {
   $num_rows = 0;
 
   foreach my $fk (@fks) {
-    my ($fk_table, $target_table, @pairs) = @$fk;
+    my ($fk_table, $target_table, $pm_key, @pairs) = @$fk;
     my $target_sample_table = $sample_tables{ $target_table };
     my $sample_fk_table = $sample_tables{ $fk_table };
 
@@ -615,13 +618,15 @@ while ($num_rows) {
       map { "t1.$_->[1] = s1.$_->[1]" } @pairs;
 
     my $where = join ' AND ',
-      map { "s1.$_->[1] IS NULL" } @pairs; 
+      map { "s1.$_->[1] IS NULL" } @pairs;
 
+    #my $pm_column = $dbh->primary_key(undef, undef, $target_table);
+    #print $pm_column;
     # Insert into the sample table all the rows needed to
     # satisfy the fk table, except those already present.
     my $query = qq{
       INSERT INTO $target_sample_table
-           SELECT DISTINCT t1.*
+           SELECT DISTINCT ON ($pm_key) t1.*
              FROM $target_table t1
                   JOIN $sample_fk_table f1 ON ($join1)
                   LEFT JOIN $target_sample_table s1 ON ($join2)
@@ -645,7 +650,7 @@ while ($num_rows) {
     notice "$count rows\n";
 
     $num_rows += $count;
-  } 
+  }
 }
 
 # fetch all sequences and current values
