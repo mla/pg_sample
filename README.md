@@ -145,18 +145,6 @@ __\-password=__*password*
 
     Password to connect with.
 
-# LICENSE
-
-This code is released under the Artistic License. See [perlartistic](http://search.cpan.org/perldoc?perlartistic).
-
 # SEE ALSO
 
 createdb(1), pg\_dump(1), psql(1)
-
-# AUTHOR
-
-Maurice Aubrey <maurice.aubrey@gmail.com>
-
-
-[![Build Status](https://travis-ci.org/mla/pg_sample.png)]
-(https://travis-ci.org/mla/pg_sample)
