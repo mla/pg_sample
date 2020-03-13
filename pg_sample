@@ -626,7 +626,7 @@ while ($num_rows) {
     # satisfy the fk table, except those already present.
     my $query = qq{
       INSERT INTO $target_sample_table
-           SELECT DISTINCT ON ($pm_key) t1.*
+           SELECT DISTINCT ON (t1.$pm_key) t1.*
              FROM $target_table t1
                   JOIN $sample_fk_table f1 ON ($join1)
                   LEFT JOIN $target_sample_table s1 ON ($join2)
