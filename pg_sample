@@ -107,7 +107,7 @@ pairs can also be specified as a single comma-separated value. For example:
 
 Rules are applied in order with the first match taking precedence.
 
-=item B<--random>
+=item B<--order>I<name>
 
 Randomize the rows initially selected from each table. May significantly
 increase the running time of the script.
@@ -158,17 +158,9 @@ Password to connect with.
 
 =back
 
-=head1 LICENSE
-
-This code is released under the Artistic License. See L<perlartistic>.
-
 =head1 SEE ALSO
 
 L<createdb(1)>, L<pg_dump(1)>, L<psql(1)>
-
-=head1 AUTHOR
-
-Maurice Aubrey <maurice.aubrey@gmail.com>
 
 =cut
 
@@ -394,7 +386,8 @@ GetOptions(\%opt,
   "help|?|usage",
   "keep",
   "limit=s@",
-  "random",
+  "order=s",
+  "desc",
   "schema=s",
   "trace",
   "verbose|v",
@@ -539,7 +532,19 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
   }
   # warn "\n[LIMIT] $table WHERE $where $limit\n";
 
-  my $order = $opt{random} ? 'ORDER BY random()' : '';
+  my $order = '';
+
+  if ($opt{order} && $opt{order} eq 'random') {
+      $order = 'ORDER BY random()';
+  } elsif ($opt{order} && $opt{order} eq 'desc') {
+      my $sth_pm = $dbh->primary_key_info(undef, $sname, $tname);
+
+      if ($sth_pm) {
+          my $pm_key = $sth_pm->fetchrow_hashref->{COLUMN_NAME};
+
+          $order = "ORDER BY $pm_key DESC";
+      }
+  }
 
   $dbh->do(qq{
     CREATE $unlogged TABLE $sample_table AS
@@ -551,6 +556,8 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
   });
 
   if ($opt{verbose}) {
+    notice "$order\n";
+
     my ($num_rows) =
       $dbh->selectrow_array(qq{ SELECT count(*) FROM $sample_table });
     notice "$num_rows\n";
@@ -566,8 +573,12 @@ foreach my $table (@tables) {
     undef, undef, undef,                  # fk table
   ) or next;
 
-  my $sth_pm = $dbh->primary_key_info(undef, $table->schema, $table->table)->fetchrow_hashref;
-  my $pm_key = $sth_pm->{COLUMN_NAME};
+  my $pm_key = 'null';
+  my $sth_pm = $dbh->primary_key_info(undef, $table->schema, $table->table);
+
+  if ($sth_pm) {
+      $pm_key = $sth_pm->fetchrow_hashref->{COLUMN_NAME};
+  }
 
   # There can be multiple rows for a single FK (composite FK)
   my %fks;
@@ -620,13 +631,17 @@ while ($num_rows) {
     my $where = join ' AND ',
       map { "s1.$_->[1] IS NULL" } @pairs;
 
-    #my $pm_column = $dbh->primary_key(undef, undef, $target_table);
-    #print $pm_column;
+    my $on = $pm_key eq 'null' ? '' : "ON (t1.$pm_key)";
+
+    if ($opt{verbose}) {
+      notice "$on\n";
+    }
+    
     # Insert into the sample table all the rows needed to
     # satisfy the fk table, except those already present.
     my $query = qq{
       INSERT INTO $target_sample_table
-           SELECT DISTINCT ON (t1.$pm_key) t1.*
+           SELECT DISTINCT $on t1.*
              FROM $target_table t1
                   JOIN $sample_fk_table f1 ON ($join1)
                   LEFT JOIN $target_sample_table s1 ON ($join2)

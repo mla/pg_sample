@@ -104,10 +104,9 @@ __\--limit=__*limit*
 
     Rules are applied in order with the first match taking precedence.
 
-__\--random__
+__\--order=__*type*
 
-    Randomize the rows initially selected from each table. May significantly
-    increase the running time of the script.
+    Supported asc, desc and random
 
 __\--schema=__*name*
 
