@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 
-our $VERSION = "1.10";
+our $VERSION = "1.11";
 
 =head1 NAME
 
@@ -123,6 +123,10 @@ Turn on Perl DBI tracing. See the DBI module documentation for details.
 =item B<--verbose>
 
 Output status information to standard error.
+
+=item B<--gzip>
+
+Gzip archive.
 
 =back
 
@@ -387,8 +391,10 @@ GetOptions(\%opt,
   "keep",
   "limit=s@",
   "order=s",
+  "desc",
   "schema=s",
   "trace",
+  "gzip",
   "verbose|v",
   "version|V",
 );
@@ -572,7 +578,7 @@ foreach my $table (@tables) {
     undef, undef, undef,                  # fk table
   ) or next;
 
-  my $pm_key = 'null';
+  my $pm_key = undef;
   my $sth_pm = $dbh->primary_key_info(undef, $table->schema, $table->table);
 
   if ($sth_pm) {
@@ -630,7 +636,7 @@ while ($num_rows) {
     my $where = join ' AND ',
       map { "s1.$_->[1] IS NULL" } @pairs;
 
-    my $on = $pm_key eq 'null' ? '' : "ON (t1.$pm_key)";
+    my $on = $pm_key ? "ON (t1.$pm_key)" : '';
 
     if ($opt{verbose}) {
       notice "$on\n";
@@ -730,6 +736,13 @@ foreach my $table (@tables) {
   print "ALTER TABLE $table ENABLE TRIGGER ALL;\n";
 }
 print "\n";
+
+if ($opt{gzip}) {
+    my $cmd = "gzip -f $opt{file}";
+    notice "$cmd\n";
+
+    system($cmd) == 0 or croak "command '$cmd' failed: $?";
+}
 
 END {
   # remove sample tables unless requested not to

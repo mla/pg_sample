@@ -116,6 +116,10 @@ __\--trace__
 
     Turn on Perl DBI tracing. See the DBI module documentation for details.
 
+__\--gzip__
+
+    Gzip dump.
+
 __\--verbose__
 
     Output status information to standard error.
