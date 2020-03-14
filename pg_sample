@@ -387,7 +387,6 @@ GetOptions(\%opt,
   "keep",
   "limit=s@",
   "order=s",
-  "desc",
   "schema=s",
   "trace",
   "verbose|v",
@@ -636,7 +635,7 @@ while ($num_rows) {
     if ($opt{verbose}) {
       notice "$on\n";
     }
-    
+
     # Insert into the sample table all the rows needed to
     # satisfy the fk table, except those already present.
     my $query = qq{
