@@ -112,9 +112,13 @@ Rules are applied in order with the first match taking precedence.
 Randomize the rows initially selected from each table. May significantly
 increase the running time of the script.
 
-=item B<--schema=>I<name>
+=item B<--sample-schema=>I<schema>
 
-The schema name to use for the sample database (defaults to _pg_sample).
+Schema name to use for the sample database (defaults to _pg_sample).
+
+=item B<--schema=>I<schema>
+
+Limit sampling to the specified schema. By default, all schemas are sampled.
 
 =item B<--trace>
 
@@ -364,7 +368,7 @@ sub sample_table ($) {
   my $table = shift;
 
   my $sample_table = join '_', $table->schema || 'public', $table->table;
-  return Table->new($opt{schema}, $sample_table);
+  return Table->new($opt{sample_schema}, $sample_table);
 }
 
 sub notice (@) {
@@ -373,12 +377,13 @@ sub notice (@) {
 }
 
 %opt = (
-  db_host => '',
-  db_port => '',
-  keep => 0,
-  random => 0,
-  schema => '_pg_sample',
-  verbose => 0,
+  db_host       => '',
+  db_port       => '',
+  keep          => 0,
+  random        => 0,
+  schema        => undef,
+  sample_schema => '_pg_sample',
+  verbose       => 0,
 );
 
 GetOptions(\%opt,
@@ -396,6 +401,7 @@ GetOptions(\%opt,
   "limit=s@",
   "no-privileges|no-acl|x",
   "random",
+  "sample_schema=s",
   "schema=s",
   "trace",
   "verbose|v",
@@ -428,7 +434,7 @@ my $dbh = connect_db(%opt) or croak "unable to connect to database";
 
 my $pg_version = pg_version;
 
-if ($opt{schema} eq 'public') {
+if ($opt{sample_schema} eq 'public') {
   die "Error: refusing to use 'public' schema for sampling.\n";
 }
 
@@ -436,16 +442,16 @@ my ($schema_oid) = $dbh->selectrow_array(qq{
   SELECT oid 
     FROM pg_catalog.pg_namespace
    WHERE nspname = ?
-}, undef, $opt{schema});
+}, undef, $opt{sample_schema});
 if ($schema_oid && !$opt{force}) {
-  die "Error: schema '$opt{schema}' already exists. " .
+  die "Error: schema '$opt{sample_schema}' already exists. " .
       "Use --force option to overwrite.\n";
 }
 
 $dbh->do(qq{ SET client_min_messages = warning }); # suppress notice messages
 if ($opt{force}) {
-  notice "Dropping sample schema $opt{schema}\n";
-  $dbh->do(qq{ DROP SCHEMA IF EXISTS $opt{schema} CASCADE });
+  notice "Dropping sample schema $opt{sample_schema}\n";
+  $dbh->do(qq{ DROP SCHEMA IF EXISTS $opt{sample_schema} CASCADE });
 }
 
 if ($opt{file}) {
@@ -470,14 +476,15 @@ unless ($opt{'data-only'}) {
 
   my @cmd = ('pg_dump', '--schema-only');
   push @cmd, '--no-privileges' if $opt{'no-privileges'};
+  push @cmd, "--schema=$opt{schema}" if $opt{schema};
   system(@cmd) == 0 or croak "command '@cmd' failed: $?";
 }
 
 # If running PostgreSQL 9.1 or later, use UNLOGGED tables
 my $unlogged = $pg_version >= version->declare('9.1') ? 'UNLOGGED' : '';
 
-notice "Creating sample schema $opt{schema}\n";
-$dbh->do(qq{ CREATE SCHEMA $opt{schema} });
+notice "Creating sample schema $opt{sample_schema}\n";
+$dbh->do(qq{ CREATE SCHEMA $opt{sample_schema} });
 my $created_schema = 1; # keep track that we actually did it; see END block
 
 # parse limit rules
@@ -502,6 +509,7 @@ my $sth = $dbh->table_info(undef, undef, undef, 'TABLE');
 while (my $row = lower_keys($sth->fetchrow_hashref)) {
   next unless uc $row->{table_type} eq 'TABLE'; # skip SYSTEM TABLE values
   next if $row->{table_schem} eq 'information_schema'; # special pg schema
+  next if $opt{schema} && $row->{table_schem} ne $opt{schema};
 
   my $sname = $row->{pg_schema} || unquote_identifier($row->{TABLE_SCHEM})
     or die "no pg_schema or TABLE_SCHEM value?!";
@@ -585,7 +593,7 @@ foreach my $fk (@fks) {
   my ($fk_table, $table, @pairs) = @$fk;
 
   my $sample_fk_table = $sample_tables{ $fk_table };
-  my $idx_name = $dbh->quote_identifier($opt{schema} . '_idx' . ++$idx);
+  my $idx_name = $dbh->quote_identifier("$opt{sample_schema}_idx" . ++$idx);
   my $fk_cols = join ', ', map { $_->[0] } @pairs;
   $dbh->do(qq{ CREATE INDEX $idx_name ON $sample_fk_table ($fk_cols) });
 }
@@ -654,6 +662,8 @@ $sth = $dbh->prepare(qq{
 $sth->execute;
 my %seq;
 while (my $row = $sth->fetchrow_hashref) {
+  next if $opt{schema} && $row->{sequence_schema} ne $opt{schema};
+
   my $name = Table->new($row->{sequence_schema}, $row->{sequence_name});
   $seq{ $name } = 0;
 }
@@ -666,7 +676,7 @@ foreach my $name (keys %seq) {
 print <<EOF;
 
 SET client_encoding = '$opt{encoding}';
-SET standard_conforming_strings = off;
+SET standard_conforming_strings = on;
 SET check_function_bodies = false;
 SET client_min_messages = warning;
 SET escape_string_warning = off;
@@ -677,7 +687,7 @@ notice "Exporting sequences\n";
 print "\n";
 foreach my $name (sort keys %seq) {
   my $constant = quote_constant($name);
-  print "SELECT pg_catalog.setval($constant, $seq{$name});\n";
+  print "SELECT pg_catalog.setval($constant, $seq{ $name });\n";
 }
 print "\n";
 
@@ -711,8 +721,8 @@ print "\n";
 END {
   # remove sample tables unless requested not to
   if ($created_schema && !$opt{keep}) {
-    notice "Dropping sample schema $opt{schema}\n";
-    $dbh->do("DROP SCHEMA $opt{schema} CASCADE");
+    notice "Dropping sample schema $opt{sample_schema}\n";
+    $dbh->do("DROP SCHEMA $opt{sample_schema} CASCADE");
   }
 
   notice "Done.\n";
