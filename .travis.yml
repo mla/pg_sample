@@ -2,7 +2,6 @@ language: perl
 perl:
  - 5.22
  - 5.14
- - 5.8
 services: postgresql
 env: PGUSER=postgres
 install: cpanm --notest DBI DBD::Pg
