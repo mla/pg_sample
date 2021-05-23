@@ -190,6 +190,35 @@ $dbh->do(qq{
   )
 });
 
+
+### Partitioning
+
+$dbh->do(qq{
+  CREATE TABLE partition_parent (
+    id int PRIMARY KEY
+  )
+});
+
+$dbh->do(qq{
+  CREATE TABLE partition_child1 (CHECK (id BETWEEN 0 AND 10))
+    INHERITS (partition_parent)
+});
+
+$dbh->do(qq{
+  CREATE TABLE partition_child2 (CHECK (id BETWEEN 10 AND 20))
+    INHERITS (partition_parent)
+});
+
+$dbh->do(qq{
+  INSERT INTO partition_parent VALUES (5)
+});
+$dbh->do(qq{
+  INSERT INTO partition_parent VALUES (15)
+});
+
+### End Parititions
+
+
 # Perform code coverage analysis? Requires Devel::Cover module.
 if ($opt{cover}) {
   $ENV{PERL5OPT} .= ' -MDevel::Cover=+select,pg_sample,+ignore,.*';

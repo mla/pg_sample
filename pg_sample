@@ -548,7 +548,7 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
   $dbh->do(qq{
     CREATE $unlogged TABLE $sample_table AS
            SELECT *
-             FROM $table
+             FROM ONLY $table
             WHERE $where
            $order
            $limit
