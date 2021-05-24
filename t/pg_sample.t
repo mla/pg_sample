@@ -193,28 +193,25 @@ $dbh->do(qq{
 
 ### Partitioning
 
-$dbh->do(qq{
-  CREATE TABLE partition_parent (
-    id int PRIMARY KEY
-  )
-});
-
-$dbh->do(qq{
-  CREATE TABLE partition_child1 (CHECK (id BETWEEN 0 AND 10))
-    INHERITS (partition_parent)
-});
-
-$dbh->do(qq{
-  CREATE TABLE partition_child2 (CHECK (id BETWEEN 10 AND 20))
-    INHERITS (partition_parent)
-});
-
-$dbh->do(qq{
-  INSERT INTO partition_parent VALUES (5)
-});
-$dbh->do(qq{
-  INSERT INTO partition_parent VALUES (15)
-});
+eval {
+  $dbh->do(qq{
+    CREATE TABLE partition_parent (
+      id int PRIMARY KEY
+    ) PARTITION BY RANGE(id)
+  });
+};
+if ($@) {
+  diag "Skipping declarative partition tests";
+} else {
+  $dbh->do(qq{
+    CREATE TABLE partition_child PARTITION OF partition_parent
+      FOR VALUES FROM (0) TO (100)
+  });
+  
+  $dbh->do(qq{
+    INSERT INTO partition_parent VALUES (10)
+  });
+}
 
 ### End Parititions
 
@@ -234,7 +231,7 @@ $template1_dbh->do("DROP DATABASE $opt{db_name}");
 $template1_dbh->do("CREATE DATABASE $opt{db_name}");
 $dbh = connect_db();
 
-$cmd = "psql -q $opt{db_name} < sample.sql";
+$cmd = "psql -q -X -v ON_ERROR_STOP=1 $opt{db_name} < sample.sql";
 system($cmd) == 0 or die "pg_sample failed: $?";
 
 foreach (1..10) {
