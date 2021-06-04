@@ -173,9 +173,11 @@ Example 2
 
     sudo docker exec pg_sample /bin/bash -c "perl pg_sample -h localhost -U db_user -W db_password --file myfile.sql mydb"
 
-### Copy `pg_sample` output from `docker` container to local file system:
+### Copy `pg_sample` output from `docker` container to local file system
 
-    sudo docker cp pg_sample:/pg_sample/myfile.sql /tmp/myfile.sql
+Copy the output file to your current directory:
+
+    sudo docker cp pg_sample:/app/myfile.sql .
 
 ### Import output file to database
 
