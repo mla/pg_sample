@@ -8,7 +8,7 @@ RUN apt-get update \
 && wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - \
 && apt-get update \
 && apt-get install -y postgresql-client \
-&& cpan -i DBI DBD::Pg
+&& cpan -i DBI DBD::Pg \
 && git clone https://github.com/ricardocasaca/pg_sample.git .
 
 ENTRYPOINT ["tail"]
