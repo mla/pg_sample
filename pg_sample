@@ -462,6 +462,7 @@ unless ($opt{'data-only'}) {
   notice "Exporting schema\n";
 
   local $ENV{PGUSER} = $opt{db_user};
+  local $ENV{PGPASSWORD} = $opt{db_pass};
   local $ENV{PGDATABASE} = $opt{db_name};
   local $ENV{PGHOST} = $opt{db_host};
   local $ENV{PGPORT} = $opt{db_port};
