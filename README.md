@@ -148,7 +148,13 @@ __\-password=__*password*
 ## Running `pg_sample` using a `docker` container
 
 We support running `pg_sample` as `docker` container in order to prevent cluttering your local file system with unwanted
-libraries. 
+libraries.
+
+### Clone the repository
+
+First you need to clone this repository into the machine where you want to build the image.
+
+    git clone https://github.com/ricardocasaca/pg_sample.git
 
 ### Build `docker` image
 
