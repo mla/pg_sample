@@ -1,5 +1,6 @@
 1.12
 
+  - Docker improvements (thanks to @ricardocasaca)
   - Improved random sampling using bernoulli sampling method when avail
     (thanks to @madtibo)
 
