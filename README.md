@@ -83,11 +83,18 @@ __\--limit=__*limit*
         # include 1,000 rows from users table
         --limit="users = 1000"
 
+        # include 10% of the total rows from users table
+        --limit="users = 10%"
+
         # include all users where deactivated column is false
         --limit="users = NOT deactivated"
 
         # include all rows from all tables in the forums schema
         --limit="forums.* = *"
+
+        # include 5% of total rows from each table in log schema
+        # and 50% to the rest of tables
+        --limit="log.* = 5%, * = 50%"
 
     The limit option may be specified multiple times. Multiple pattern/rule
     pairs can also be specified as a single comma-separated value. For example:
@@ -137,6 +144,32 @@ __\-W__ _password_
 __\-password=__*password*
 
     Password to connect with.
+
+## Running `pg_sample` using a `docker` container
+
+We support running `pg_sample` as `docker` container in order to prevent cluttering your local file system with unwanted
+libraries. 
+
+### Build `docker` image
+
+From the root folder issue the following command to generate a runnable docker image:
+
+    docker build -t pg_sample .
+
+### Run containerized `pg_sample` 
+
+After executing the previous command you can proceed to spin up a `docker` container that will have `pg_sample`
+binaries available:
+
+    docker run --network=host --name pg_sample --detach pg_sample tail -f /dev/null
+
+### Execute `pg_sample` against `docker` container 
+
+    docker exec --detach pg_sample ./pg_sample mydb --file myfile.sql
+
+### Copy `pg_sample` output from `docker` container to local file system:
+
+    docker cp pg_sample:/pg_sample/myfile.sql /tmp/myfile.sql
 
 # LICENSE
 
