@@ -18,7 +18,7 @@
 
 our $DB_NAME = '_pg_sample_test';
 
-$ENV{PATH} = "$ENV{PATH}:.:..";
+$ENV{PATH} = ".:..:$ENV{PATH}";
 $ENV{VERBOSITY} = 'terse';
 
 use strict;

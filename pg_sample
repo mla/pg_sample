@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 
-our $VERSION = "1.11";
+our $VERSION = "1.12";
 
 =head1 NAME
 
@@ -536,23 +536,25 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
     if ($_->[1] eq '*') { # include all rows
       $limit = '';
     } elsif ($_->[1] =~ /^\d+$/) { # numeric value turned into LIMIT
-      if (not $opt{random} or $pg_version < version->declare('9.5')) {
+      if (!$opt{random} || $pg_version < version->declare('9.5')) {
         $limit = "LIMIT $_->[1]";
       } else {
-        my ($table_num_rows) = $dbh->selectrow_array(qq{ SELECT count(*) FROM $table });
+        my ($table_num_rows) = $dbh->selectrow_array(qq{
+          SELECT greatest(count(*), 1) FROM $table
+        });
         my $percent = 100 * $_->[1] / $table_num_rows;
         $tablesample = "TABLESAMPLE BERNOULLI ($percent)";
       }
     } elsif ($_->[1] =~ /^\d+%$/) { # percent value turned into LIMIT
       if (not $opt{random} or $pg_version < version->declare('9.5')) {
-         my ($table_num_rows) = $dbh->selectrow_array(qq{ SELECT count(*) FROM $table });
-         my $percent = (substr $_->[1], 0, (length $_->[1]) - 1) / 100;
-         my $total_rows = int($table_num_rows * $percent);
+        my ($table_num_rows) = $dbh->selectrow_array(qq{ SELECT count(*) FROM $table });
+        my $percent = (substr $_->[1], 0, (length $_->[1]) - 1) / 100;
+        my $total_rows = int($table_num_rows * $percent);
 
-         $limit = "LIMIT $total_rows";
+        $limit = "LIMIT $total_rows";
       } else {
-         my $percent = (substr $_->[1], 0, (length $_->[1]) - 1);
-         $tablesample = "TABLESAMPLE BERNOULLI ($percent)";
+        my $percent = (substr $_->[1], 0, (length $_->[1]) - 1);
+        $tablesample = "TABLESAMPLE BERNOULLI ($percent)";
       }
     } else { # otherwise treated as subselect
       $where = "($_->[1])";

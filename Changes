@@ -1,3 +1,8 @@
+1.12
+
+  - Improved random sampling using bernoulli sampling method when avail
+    (thanks to @madtibo)
+
 1.11 May 8, 2021
 
   - Added Docker support (thanks to @mariano-balto)
