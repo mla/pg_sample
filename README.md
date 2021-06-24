@@ -154,7 +154,7 @@ libraries.
 
 First you need to clone this repository into the machine where you want to build the image.
 
-    git clone https://github.com/ricardocasaca/pg_sample.git
+    git clone https://github.com/mla/pg_sample.git
 
 ### Build `docker` image
 
