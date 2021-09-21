@@ -167,7 +167,7 @@ From the root folder issue the following command to generate a runnable docker i
 After executing the previous command you can proceed to spin up a `docker` container that will have `pg_sample`
 binaries available:
 
-    sudo docker run --network=host --name pg_sample --detach pg_sample -h localhost -U db_user -W db_password -v $(pwd):/io --file /io/myfile.sql mydb
+    sudo docker run --network=host --detach -v "$(pwd):/io" pg_sample -h localhost -U db_user -W db_password --file /io/myfile.sql mydb
 
 ### Import output file to database
 
