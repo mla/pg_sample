@@ -190,6 +190,32 @@ $dbh->do(qq{
   )
 });
 
+
+### Partitioning
+
+eval {
+  $dbh->do(qq{
+    CREATE TABLE partition_parent (
+      id int PRIMARY KEY
+    ) PARTITION BY RANGE(id)
+  });
+};
+if ($@) {
+  diag "Skipping declarative partition tests";
+} else {
+  $dbh->do(qq{
+    CREATE TABLE partition_child PARTITION OF partition_parent
+      FOR VALUES FROM (0) TO (100)
+  });
+  
+  $dbh->do(qq{
+    INSERT INTO partition_parent VALUES (10)
+  });
+}
+
+### End Parititions
+
+
 # Perform code coverage analysis? Requires Devel::Cover module.
 if ($opt{cover}) {
   $ENV{PERL5OPT} .= ' -MDevel::Cover=+select,pg_sample,+ignore,.*';
@@ -205,7 +231,7 @@ $template1_dbh->do("DROP DATABASE $opt{db_name}");
 $template1_dbh->do("CREATE DATABASE $opt{db_name}");
 $dbh = connect_db();
 
-$cmd = "psql -q $opt{db_name} < sample.sql";
+$cmd = "psql -q -X -v ON_ERROR_STOP=1 $opt{db_name} < sample.sql";
 system($cmd) == 0 or die "pg_sample failed: $?";
 
 foreach (1..10) {

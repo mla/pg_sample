@@ -571,12 +571,12 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
 
   $dbh->do(qq{
     CREATE $unlogged TABLE $sample_table AS
-           SELECT *
-             FROM $table
-           $tablesample
-            WHERE $where
-           $order
-           $limit
+            SELECT *
+         FROM ONLY $table
+      $tablesample
+             WHERE $where
+            $order
+            $limit
   });
 
   if ($opt{verbose}) {
