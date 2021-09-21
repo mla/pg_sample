@@ -1,5 +1,6 @@
-1.12
+1.12 Sep 21, 2021
 
+  - Fix parititon handling (thanks to @zyntogz)
   - Docker improvements (thanks to @ricardocasaca)
   - Improved random sampling using bernoulli sampling method when avail
     (thanks to @madtibo)
