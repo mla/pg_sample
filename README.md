@@ -167,27 +167,11 @@ From the root folder issue the following command to generate a runnable docker i
 After executing the previous command you can proceed to spin up a `docker` container that will have `pg_sample`
 binaries available:
 
-    sudo docker run --network=host --name pg_sample --detach pg_sample tail -f /dev/null
-
-### Execute `pg_sample` against `docker` container
-
-Example 1
-
-    sudo docker exec --detach pg_sample ./pg_sample mydb --file myfile.sql
-
-Example 2
-
-    sudo docker exec pg_sample /bin/bash -c "perl pg_sample -h localhost -U db_user -W db_password --file myfile.sql mydb"
-
-### Copy `pg_sample` output from `docker` container to local file system
-
-Copy the output file to your current directory:
-
-    sudo docker cp pg_sample:/app/myfile.sql .
+    sudo docker run --network=host --name pg_sample --detach pg_sample -h localhost -U db_user -W db_password -v $(pwd):/io --file /io/myfile.sql mydb
 
 ### Import output file to database
 
-    sudo -u postgres psql database_name < /tmp/myfile.sql
+    sudo -u postgres psql database_name < myfile.sql
 
 # LICENSE
 
