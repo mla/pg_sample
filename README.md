@@ -148,30 +148,17 @@ __\-password=__*password*
 ## Running `pg_sample` using a `docker` container
 
 We support running `pg_sample` as `docker` container in order to prevent cluttering your local file system with unwanted
-libraries.
+libraries:
 
-### Clone the repository
-
-First you need to clone this repository into the machine where you want to build the image.
-
-    git clone https://github.com/mla/pg_sample.git
-
-### Build `docker` image
-
-From the root folder issue the following command to generate a runnable docker image:
-
-    sudo docker build -t pg_sample .
-
-### Run containerized `pg_sample` 
-
-After executing the previous command you can proceed to spin up a `docker` container that will have `pg_sample`
-binaries available:
-
-    sudo docker run --network=host --detach -v "$(pwd):/io" pg_sample -h localhost -U db_user -W db_password --file /io/myfile.sql mydb
+    sudo docker run --network=host --detach -v "$(pwd):/io" mla/pg_sample -h localhost -U db_user -W db_password --file /io/myfile.sql mydb
 
 ### Import output file to database
 
     sudo -u postgres psql database_name < myfile.sql
+
+### Docker image publishing procedure
+
+For any branch or git tag matching `v*`, a Docker image will automatically be pushed to the dockerhub using github workflows.
 
 # LICENSE
 
