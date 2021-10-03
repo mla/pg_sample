@@ -40,19 +40,14 @@ See the [Docker section](#using-with-docker) for details.
 To install locally:
 
 1. Clone the repo. e.g.,
-
     ```
     $ git clone git@github.com:mla/pg_sample.git
     ```
-
 2. Install dependencies. For Ubuntu / Mint, try:
-
     ```
     $ sudo apt install perl libdbi-perl libdbd-pg-perl
     ```
-
 3. Run it.
-
     ```
     $ cd pg_sample
     $ ./pg_sample ... # See below for options
