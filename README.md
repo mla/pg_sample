@@ -30,6 +30,21 @@ PostgreSQL database named "mydb", a sample database could be constructed with:
 - pg\_dump should be in your search path (in order to dump the schema)
 - Perl DBI and DBD::Pg (>= 2.0) modules
 
+## Installation
+
+1. Clone repo. e.g.,
+
+   $ git clone git@github.com:mla/pg_sample.git
+
+2. Install dependencies. For Ubuntu / Mint, try:
+
+   $ sudo apt install perl libdbi-perl libdbd-pg-perl
+
+3. Run it.
+
+   $ cd pg_sample
+   $ ./pg_sample [OPTIONS] ... # See below for options
+
 ## Command-line Options
 
 _dbname_

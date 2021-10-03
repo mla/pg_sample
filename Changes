@@ -2,6 +2,7 @@
 
   - Fix -p short option (thanks to Jacek Trociński @jacektrocinski)
   - Improve Docker workflow (thanks to Olivier Daland @olivierdalang)
+  - Added INSTALL.md (thanks Nathan Dawson @Fedelaus)
 
 1.12 Sep 21, 2021
 
