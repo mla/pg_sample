@@ -32,7 +32,9 @@ PostgreSQL database named "mydb", a sample database could be constructed with:
 
 ## Installation
 
-pg_sample can be run with Docker. See the [Docker](#docker) section for details.
+The simplest way to run pg_sample is probably with Docker.
+See the [Docker](#using-with-docker) section for details.
+
 To install locally:
 
 1. Clone repo. e.g.,
@@ -163,15 +165,11 @@ __\-password=__*password*
 
     Password to connect with.
 
-## Docker
+## Using with Docker
 
 We support running `pg_sample` as a `docker` container:
 
     sudo docker run --network=host -v "$(pwd):/io" mla12/pg_sample -v [option ...] --file /io/myfile.sql <dbname>
-
-### Import output file to new database
-
-    psql [options] <new-sample-dbname> < myfile.sql
 
 # LICENSE
 
