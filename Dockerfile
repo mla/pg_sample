@@ -12,5 +12,5 @@ RUN apt-get update \
 && apt-get install -y postgresql-client \
 && cpan -i DBI DBD::Pg
 
-ENTRYPOINT ["pg_sample"]
+ENTRYPOINT ["/app/pg_sample"]
 CMD ["--help"]
