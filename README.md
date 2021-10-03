@@ -33,11 +33,11 @@ PostgreSQL database named "mydb", a sample database could be constructed with:
 ## Installation
 
 The simplest way to run pg_sample is probably with Docker.
-See the [Docker](#using-with-docker) section for details.
+See the [Docker section](#using-with-docker) for details.
 
 To install locally:
 
-1. Clone repo. e.g.,
+1. Clone the repo. e.g.,
 
     $ git clone git@github.com:mla/pg_sample.git
 
@@ -48,7 +48,7 @@ To install locally:
 3. Run it.
 
     $ cd pg_sample
-    $ ./pg_sample [OPTIONS] ... # See below for options
+    $ ./pg_sample ... # See below for options
 
 ## Command-line Options
 
