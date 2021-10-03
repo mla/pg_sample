@@ -40,7 +40,7 @@ To install locally:
 1. Clone the repo. e.g.,
 
     ```
-    $ git clone git<span>@</span>github.com:mla/pg_sample.git
+    $ git clone git@github.com:mla/pg_sample.git
     ```
 
 2. Install dependencies. For Ubuntu / Mint, try:
@@ -104,7 +104,6 @@ __\--limit=__*limit*
 
          # include all rows from the users table
          --limit="users = *"
-        
 
         # include 1,000 rows from users table
         --limit="users = 1000"
