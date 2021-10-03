@@ -147,18 +147,13 @@ __\-password=__*password*
 
 ## Running `pg_sample` using a `docker` container
 
-We support running `pg_sample` as `docker` container in order to prevent cluttering your local file system with unwanted
-libraries:
+We support running `pg_sample` as `docker` container:
 
-    sudo docker run --network=host --detach -v "$(pwd):/io" mla/pg_sample -h localhost -U db_user -W db_password --file /io/myfile.sql mydb
+    sudo docker run --network=host -v "$(pwd):/io" mla12/pg_sample [option ...] --file /io/myfile.sql [dbname]
 
 ### Import output file to database
 
     sudo -u postgres psql database_name < myfile.sql
-
-### Docker image publishing procedure
-
-For any branch or git tag matching `v*`, a Docker image will automatically be pushed to the dockerhub using github workflows.
 
 # LICENSE
 
