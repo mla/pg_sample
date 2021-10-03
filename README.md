@@ -35,7 +35,7 @@ $ pg_sample mydb | psql sampledb
 ## Installation
 
 See the [Docker section](#using-with-docker) for details on how to
-run pg_sample without installing locally.
+run pg_sample with Docker.
 
 To install locally:
 
