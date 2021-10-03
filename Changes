@@ -1,5 +1,6 @@
 1.13
 
+  - Fix -p short option (thanks to Jacek Trociński @jacektrocinski)
   - Improve Docker workflow (thanks to Olivier Daland @olivierdalang)
 
 1.12 Sep 21, 2021
