@@ -21,8 +21,8 @@ To build an actual instance of the sample database, the output of this script
 can be piped to the psql utility. For example, assuming we have an existing
 PostgreSQL database named "mydb", a sample database could be constructed with:
 
-    createdb sampledb
-    pg_sample mydb | psql sampledb
+    ```createdb sampledb
+    pg_sample mydb | psql sampledb```
 
 ## Requirements
 
@@ -47,8 +47,10 @@ To install locally:
 
 3. Run it.
 
-    ```$ cd pg_sample
-    $ ./pg_sample ... # See below for options```
+    ```
+    $ cd pg_sample
+    $ ./pg_sample ... # See below for options
+    ```
 
 ## Command-line Options
 
