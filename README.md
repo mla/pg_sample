@@ -175,9 +175,9 @@ __\-password=__*password*
 
 We support running `pg_sample` as a `docker` container:
 
-    ```
-    sudo docker run --network=host -v "$(pwd):/io" mla12/pg_sample -v [option ...] --file /io/myfile.sql <dbname>
-    ```
+```
+sudo docker run --network=host -v "$(pwd):/io" mla12/pg_sample -v [option ...] --file /io/myfile.sql <dbname>
+```
 
 # LICENSE
 
