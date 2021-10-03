@@ -149,11 +149,11 @@ __\-password=__*password*
 
 We support running `pg_sample` as `docker` container:
 
-    sudo docker run --network=host -v "$(pwd):/io" mla12/pg_sample -v [option ...] --file /io/myfile.sql [dbname]
+    sudo docker run --network=host -v "$(pwd):/io" mla12/pg_sample -v [option ...] --file /io/myfile.sql <dbname>
 
 ### Import output file to database
 
-    sudo -u postgres psql database_name < myfile.sql
+    psql [options] <dbname> < myfile.sql
 
 # LICENSE
 
