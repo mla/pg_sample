@@ -39,16 +39,16 @@ To install locally:
 
 1. Clone the repo. e.g.,
 
-    $ git clone git<span>@</span>github.com:mla/pg_sample.git
+    ```$ git clone git<span>@</span>github.com:mla/pg_sample.git```
 
 2. Install dependencies. For Ubuntu / Mint, try:
 
-    $ sudo apt install perl libdbi-perl libdbd-pg-perl
+    ```$ sudo apt install perl libdbi-perl libdbd-pg-perl```
 
 3. Run it.
 
-    $ cd pg_sample
-    $ ./pg_sample ... # See below for options
+    ```$ cd pg_sample
+    $ ./pg_sample ... # See below for options```
 
 ## Command-line Options
 
