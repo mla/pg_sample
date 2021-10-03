@@ -22,8 +22,8 @@ can be piped to the psql utility. For example, assuming we have an existing
 PostgreSQL database named "mydb", a sample database could be constructed with:
 
 ```
-createdb sampledb
-pg_sample mydb | psql sampledb
+$ createdb sampledb
+$ pg_sample mydb | psql sampledb
 ```
 
 ## Requirements
