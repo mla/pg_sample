@@ -2,11 +2,8 @@ FROM perl:5.28.3
 
 WORKDIR /app
 
-COPY . .
-
 ARG DEBIAN_FRONTEND=noninteractive
 ARG APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=TRUE
-
 
 RUN apt-get update \
   && apt-get install -y wget lsb-release \
@@ -15,6 +12,8 @@ RUN apt-get update \
   && apt-get update \
   && apt-get install -y postgresql-client \
   && /usr/local/bin/cpanm DBI DBD::Pg
+
+COPY . .
 
 ENTRYPOINT ["/app/pg_sample"]
 CMD ["--help"]
