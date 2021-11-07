@@ -126,6 +126,11 @@ __\--limit=__*limit*
 
     Rules are applied in order with the first match taking precedence.
 
+__\--ordered__
+
+    Guarantees deterministic row ordering in the generated scripts by ordering
+    by primary key.
+
 __\--random__
 
     Randomize the rows initially selected from each table. May significantly

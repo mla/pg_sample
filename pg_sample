@@ -380,6 +380,7 @@ sub notice (@) {
   db_host       => '',
   db_port       => '',
   keep          => 0,
+  ordered       => 0,
   random        => 0,
   schema        => undef,
   sample_schema => '_pg_sample',
@@ -400,6 +401,7 @@ GetOptions(\%opt,
   "keep",
   "limit=s@",
   "no-privileges|no-acl|x",
+  "ordered",
   "random",
   "sample_schema=s",
   "schema=s",
@@ -730,6 +732,22 @@ foreach my $table (@tables) {
     notice "Exporting data from $sample_table ($count)\n";
   }
   print "COPY $table FROM stdin;\n";
+  if ($opt{ordered}) {
+    # Retrieving the primary keys fields for ordering
+    $sth = $dbh->prepare(qq{
+      SELECT a.attname
+      FROM   pg_index i
+      JOIN   pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey)
+      WHERE  i.indrelid = '$table'::regclass AND i.indisprimary;
+    });
+    $sth->execute;
+    my @pks;
+    while (my $row = $sth->fetchrow_hashref) {
+        push @pks, $row->{attname};
+    }
+    my $order_statement = join ",", @pks;
+    $sample_table = "(SELECT * FROM $sample_table ORDER BY $order_statement)";
+  }
   $dbh->do(qq{ COPY $sample_table TO STDOUT });
   my $buffer = '';
   print $buffer while $dbh->pg_getcopydata($buffer) >= 0;
