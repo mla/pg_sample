@@ -27,7 +27,7 @@ SET default_with_oids = false;
 --
 
 CREATE TABLE "table" (
-    "table" text NOT NULL
+    "table" text NOT NULL -- test using reserved word for column
 );
 
 

@@ -371,10 +371,57 @@ sub sample_table ($) {
   return Table->new($opt{sample_schema}, $sample_table);
 }
 
+
+# Find the first candidate key for a given table (preferring primary
+# key if available)
+sub find_candidate_key {
+  my $table = shift;
+
+  my $query = qq{
+      SELECT n.nspname AS table_schema
+             ,c2.relname as table_name
+             ,c.relname AS index_name
+             ,a.attname AS column_name
+        FROM pg_catalog.pg_class c
+             LEFT JOIN pg_catalog.pg_index i ON i.indexrelid = c.oid
+             LEFT JOIN pg_catalog.pg_class c2 ON i.indrelid = c2.oid
+             LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c2.relnamespace
+             LEFT JOIN pg_catalog.pg_attribute a ON (
+               i.indexrelid = a.attrelid
+               AND a.attnum > 0
+               AND NOT a.attisdropped
+             )
+       WHERE c.relkind = 'i'
+             AND n.nspname = ?
+             AND c2.relname = ?
+             AND (indisprimary OR indisunique)
+             -- exclude partial and functional indexes since we
+             -- don't know how to express them
+             AND indexprs IS NULL AND indpred IS NULL
+    ORDER BY i.indisprimary DESC -- prefer primary key
+             ,index_name
+             ,column_name
+  };
+  my $dbh = connect_db;
+  my $sth = $dbh->prepare($query);
+  $sth->execute($table->schema, $table->table);
+
+  my $last_index_name;
+  my @cols;
+  while (my $row = $sth->fetchrow_hashref) {
+    last if $row->{index_name} ne ($last_index_name //= $row->{index_name});
+    push @cols, $row->{column_name};
+  }
+
+  return wantarray ? @cols : \@cols;
+}
+
+
 sub notice (@) {
   return unless $opt{verbose};
   print STDERR join "", @_;
 }
+
 
 %opt = (
   db_host       => '',
@@ -567,7 +614,7 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
   }
   # warn "\n[LIMIT] $table WHERE $where $limit\n";
 
-  if ($opt{random} and $pg_version < version->declare('9.5')) {
+  if ($opt{random} && $pg_version < version->declare('9.5')) {
     $order = $opt{random} ? 'ORDER BY random()' : '';
   }
 
@@ -732,22 +779,17 @@ foreach my $table (@tables) {
     notice "Exporting data from $sample_table ($count)\n";
   }
   print "COPY $table FROM stdin;\n";
+
   if ($opt{ordered}) {
-    # Retrieving the primary keys fields for ordering
-    $sth = $dbh->prepare(qq{
-      SELECT a.attname
-      FROM   pg_index i
-      JOIN   pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey)
-      WHERE  i.indrelid = '$table'::regclass AND i.indisprimary;
-    });
-    $sth->execute;
-    my @pks;
-    while (my $row = $sth->fetchrow_hashref) {
-        push @pks, $row->{attname};
+    my @cols = find_candidate_key($table);
+    if (@cols) {
+      my $cols = join ', ', map { $dbh->quote_identifier($_) } @cols;
+      $sample_table = "(SELECT * FROM $sample_table ORDER BY $cols)";
+    } else {
+      notice "No candidate key found for '$table'; ignoring --ordered";
     }
-    my $order_statement = join ",", @pks;
-    $sample_table = "(SELECT * FROM $sample_table ORDER BY $order_statement)";
   }
+
   $dbh->do(qq{ COPY $sample_table TO STDOUT });
   my $buffer = '';
   print $buffer while $dbh->pg_getcopydata($buffer) >= 0;

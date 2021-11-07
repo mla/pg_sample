@@ -231,6 +231,7 @@ $template1_dbh->do("DROP DATABASE $opt{db_name}");
 $template1_dbh->do("CREATE DATABASE $opt{db_name}");
 $dbh = connect_db();
 
+# Load the sample DB
 $cmd = "psql -q -X -v ON_ERROR_STOP=1 $opt{db_name} < sample.sql";
 system($cmd) == 0 or die "pg_sample failed: $?";
 
