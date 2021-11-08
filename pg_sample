@@ -371,6 +371,26 @@ sub sample_table ($) {
   return Table->new($opt{sample_schema}, $sample_table);
 }
 
+# Returns comma separated primary key columns for the given table
+# to be used in an ORDER BY statement
+sub order_by_pk_statement {
+    my $table = $_[0];
+
+    # Retrieving the primary keys fields for ordering
+    my $sth = connect_db()->prepare(qq{
+      SELECT a.attname
+      FROM   pg_index i
+      JOIN   pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey)
+      WHERE  i.indrelid = '$table'::regclass AND i.indisprimary;
+    });
+    $sth->execute;
+    my @pks;
+    while (my $row = $sth->fetchrow_hashref) {
+        push @pks, $row->{attname};
+    }
+    return join ",", @pks;
+}
+
 sub notice (@) {
   return unless $opt{verbose};
   print STDERR join "", @_;
@@ -419,6 +439,11 @@ if ($opt{help}) {
   require Pod::Usage;
   Pod::Usage::pod2usage(-verbose => 2);
   exit 0;
+}
+
+if ($opt{random} && $opt{ordered}) {
+  print("Error: --random and --ordered are mutually exclusive");
+  exit 1;
 }
 
 @ARGV or die "\nUsage: $0 [ option... ] [ dbname ]\n\n\t" .
@@ -569,6 +594,11 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
 
   if ($opt{random} and $pg_version < version->declare('9.5')) {
     $order = $opt{random} ? 'ORDER BY random()' : '';
+  }
+  elsif ($opt{ordered})
+  {
+    my $order_statement = order_by_pk_statement($table) ;
+    $order = "ORDER BY $order_statement";
   }
 
   $dbh->do(qq{
@@ -734,18 +764,7 @@ foreach my $table (@tables) {
   print "COPY $table FROM stdin;\n";
   if ($opt{ordered}) {
     # Retrieving the primary keys fields for ordering
-    $sth = $dbh->prepare(qq{
-      SELECT a.attname
-      FROM   pg_index i
-      JOIN   pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey)
-      WHERE  i.indrelid = '$table'::regclass AND i.indisprimary;
-    });
-    $sth->execute;
-    my @pks;
-    while (my $row = $sth->fetchrow_hashref) {
-        push @pks, $row->{attname};
-    }
-    my $order_statement = join ",", @pks;
+    my $order_statement = order_by_pk_statement($table) ;
     $sample_table = "(SELECT * FROM $sample_table ORDER BY $order_statement)";
   }
   $dbh->do(qq{ COPY $sample_table TO STDOUT });
