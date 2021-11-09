@@ -371,6 +371,7 @@ sub sample_table ($) {
   return Table->new($opt{sample_schema}, $sample_table);
 }
 
+
 # Find the first candidate key for a given table (preferring primary
 # key if available)
 sub find_candidate_key {
@@ -415,10 +416,12 @@ sub find_candidate_key {
   return wantarray ? @cols : \@cols;
 }
 
+
 sub notice (@) {
   return unless $opt{verbose};
   print STDERR join "", @_;
 }
+
 
 %opt = (
   db_host       => '',
@@ -791,6 +794,7 @@ foreach my $table (@tables) {
     notice "Exporting data from $sample_table ($count)\n";
   }
   print "COPY $table FROM stdin;\n";
+
   if ($opt{ordered}) {
     my @cols = find_candidate_key($table);
     if (@cols) {
@@ -800,6 +804,7 @@ foreach my $table (@tables) {
       notice "No candidate key found for '$table'; ignoring --ordered";
     }
   }
+
   $dbh->do(qq{ COPY $sample_table TO STDOUT });
   my $buffer = '';
   print $buffer while $dbh->pg_getcopydata($buffer) >= 0;
