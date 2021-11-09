@@ -26,7 +26,7 @@ use warnings;
 use Carp;
 use DBI;
 use Getopt::Long qw/ GetOptions :config no_ignore_case /;
-use Test::More tests => 12;
+use Test::More tests => 14;
 
 $| = 1;
 
@@ -215,6 +215,11 @@ if ($@) {
 
 ### End Parititions
 
+# Create unordered table to test --ordered
+$dbh->do(qq{CREATE TABLE "test_ordered" (id SERIAL PRIMARY KEY, name TEXT);});
+$dbh->do(qq{CREATE INDEX "my_index" ON "test_ordered" (name);});
+$dbh->do(qq{INSERT INTO "test_ordered" VALUES (1, 'b'), (2, 'a');});
+$dbh->do(qq{CLUSTER "test_ordered" USING "my_index";  -- with this, default SELECT will return 2,1;});
 
 # Perform code coverage analysis? Requires Devel::Cover module.
 if ($opt{cover}) {
@@ -247,6 +252,27 @@ my $row = $dbh->selectrow_hashref(qq{
   SELECT * FROM parent WHERE parent_id = 1
 });
 is($row->{name}, "\\.", "escaping");
+
+# without --ordered, test_ordered returns as per clustered order
+my($ord) = $dbh->selectrow_array(qq{ SELECT STRING_AGG(id::text, ',') FROM "test_ordered" GROUP BY TRUE });
+is($ord, '2,1', "ordered test case broken, this should return by clustered order");
+
+@opts = ('--ordered');
+push @opts, '--verbose' if $opt{verbose};
+$cmd = "pg_sample @opts $opt{db_name} > sample_ordered.sql";
+system($cmd) == 0 or die "pg_sample failed: $?";
+
+$dbh->disconnect;
+$template1_dbh->do("DROP DATABASE $opt{db_name}");
+$template1_dbh->do("CREATE DATABASE $opt{db_name}");
+$dbh = connect_db();
+
+# Load the sample DB
+$cmd = "psql -q -X -v ON_ERROR_STOP=1 $opt{db_name} < sample_ordered.sql";
+system($cmd) == 0 or die "pg_sample failed: $?";
+
+$ord = $dbh->selectrow_array(qq{ SELECT STRING_AGG(id::text, ',') FROM "test_ordered" GROUP BY TRUE });
+is($ord, '1,2', "results should be ordered");
 
 $dbh->disconnect;
 $template1_dbh->do("DROP DATABASE $opt{db_name}");
