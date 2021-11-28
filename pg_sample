@@ -468,6 +468,11 @@ if ($opt{help}) {
   exit 0;
 }
 
+if ($opt{random} && $opt{ordered}) {
+  print("Error: --random and --ordered are mutually exclusive");
+  exit 1;
+}
+
 @ARGV or die "\nUsage: $0 [ option... ] [ dbname ]\n\n\t" .
              "$0 --help for detailed options\n";
 
@@ -616,6 +621,16 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
 
   if ($opt{random} && $pg_version < version->declare('9.5')) {
     $order = $opt{random} ? 'ORDER BY random()' : '';
+  }
+  elsif ($opt{ordered})
+  {
+    my @cols = find_candidate_key($table);
+    if (@cols) {
+      my $cols = join ', ', map { $dbh->quote_identifier($_) } @cols;
+      $order = "ORDER BY $cols";
+    } else {
+      notice "No candidate key found for '$table'; ignoring --ordered";
+    }
   }
 
   $dbh->do(qq{
