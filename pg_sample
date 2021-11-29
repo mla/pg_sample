@@ -621,9 +621,7 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
 
   if ($opt{random} && $pg_version < version->declare('9.5')) {
     $order = $opt{random} ? 'ORDER BY random()' : '';
-  }
-  elsif ($opt{ordered})
-  {
+  } elsif ($opt{ordered}) {
     my @cols = find_candidate_key($table);
     if (@cols) {
       my $cols = join ', ', map { $dbh->quote_identifier($_) } @cols;
