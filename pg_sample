@@ -595,8 +595,8 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
         $limit = "LIMIT $_->[1]";
       } else {
         my ($table_num_rows) = $dbh->selectrow_array(qq{
-          SELECT greatest(count(*), 1) FROM $table
-        });
+          SELECT greatest(count(*), ?) FROM $table
+        }, undef, $_->[1]);
         my $percent = 100 * $_->[1] / $table_num_rows;
         $tablesample = "TABLESAMPLE BERNOULLI ($percent)";
       }
