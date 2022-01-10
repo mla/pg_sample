@@ -1,3 +1,10 @@
+1.13 Jan 10, 2022
+
+  - Fix -p short option (thanks to Jacek Trociński @jacektrocinski)
+  - Improve Docker workflow (thanks to Olivier Dalang @olivierdalang)
+  - Added INSTALL.md (thanks Nathan Dawson @Fedelaus)
+  - Fix --random with small tables (thanks to Luiz Muller @luizm)
+
 1.12 Sep 21, 2021
 
   - Fix parititon handling (thanks to @zyntogz)

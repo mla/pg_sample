@@ -21,14 +21,37 @@ To build an actual instance of the sample database, the output of this script
 can be piped to the psql utility. For example, assuming we have an existing
 PostgreSQL database named "mydb", a sample database could be constructed with:
 
-    createdb sampledb
-    pg_sample mydb | psql sampledb
+```
+$ createdb sampledb
+$ pg_sample mydb | psql sampledb
+```
 
 ## Requirements
 
 - PostgreSQL 8.1 or later
 - pg\_dump should be in your search path (in order to dump the schema)
 - Perl DBI and DBD::Pg (>= 2.0) modules
+
+## Installation
+
+See the [Docker section](#using-with-docker) for details on how to
+run pg_sample with Docker.
+
+To install locally:
+
+1. Clone the repo. e.g.,
+    ```
+    $ git clone git@github.com:mla/pg_sample.git
+    ```
+2. Install dependencies. For Ubuntu / Mint, try:
+    ```
+    $ sudo apt install perl libdbi-perl libdbd-pg-perl
+    ```
+3. Run it.
+    ```
+    $ cd pg_sample
+    $ ./pg_sample ... # See below for options
+    ```
 
 ## Command-line Options
 
@@ -78,7 +101,6 @@ __\--limit=__*limit*
 
          # include all rows from the users table
          --limit="users = *"
-        
 
         # include 1,000 rows from users table
         --limit="users = 1000"
@@ -103,6 +125,11 @@ __\--limit=__*limit*
         --limit="ads=*,*=300"
 
     Rules are applied in order with the first match taking precedence.
+
+__\--ordered__
+
+    Guarantees deterministic row ordering in the generated scripts by ordering
+    by primary key.
 
 __\--random__
 
@@ -145,49 +172,13 @@ __\-password=__*password*
 
     Password to connect with.
 
-## Running `pg_sample` using a `docker` container
+## Using with Docker
 
-We support running `pg_sample` as `docker` container in order to prevent cluttering your local file system with unwanted
-libraries.
+We support running `pg_sample` as a `docker` container:
 
-### Clone the repository
-
-First you need to clone this repository into the machine where you want to build the image.
-
-    git clone https://github.com/mla/pg_sample.git
-
-### Build `docker` image
-
-From the root folder issue the following command to generate a runnable docker image:
-
-    sudo docker build -t pg_sample .
-
-### Run containerized `pg_sample` 
-
-After executing the previous command you can proceed to spin up a `docker` container that will have `pg_sample`
-binaries available:
-
-    sudo docker run --network=host --name pg_sample --detach pg_sample tail -f /dev/null
-
-### Execute `pg_sample` against `docker` container
-
-Example 1
-
-    sudo docker exec --detach pg_sample ./pg_sample mydb --file myfile.sql
-
-Example 2
-
-    sudo docker exec pg_sample /bin/bash -c "perl pg_sample -h localhost -U db_user -W db_password --file myfile.sql mydb"
-
-### Copy `pg_sample` output from `docker` container to local file system
-
-Copy the output file to your current directory:
-
-    sudo docker cp pg_sample:/app/myfile.sql .
-
-### Import output file to database
-
-    sudo -u postgres psql database_name < /tmp/myfile.sql
+```
+sudo docker run --network=host -v "$(pwd):/io" mla12/pg_sample -v [option ...] --file /io/myfile.sql <dbname>
+```
 
 # LICENSE
 
