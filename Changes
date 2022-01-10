@@ -1,3 +1,5 @@
+  - Fix --random with small tables (thanks to @luizm)
+
 1.13
 
   - Fix -p short option (thanks to Jacek Trociński @jacektrocinski)
