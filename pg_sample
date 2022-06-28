@@ -107,10 +107,19 @@ pairs can also be specified as a single comma-separated value. For example:
 
 Rules are applied in order with the first match taking precedence.
 
+=item B<--ordered>
+
+Select from the table records after ordering the records by primary key value.
+
+=item B<--flip>
+
+When passed as an option, the records will be ordered by decreasing primary key value.
+Will have an effect only if --ordered is also passed as an option.
+
 =item B<--random>
 
 Randomize the rows initially selected from each table. May significantly
-increase the running time of the script.
+increase the running time of the script. 
 
 =item B<--sample-schema=>I<schema>
 
@@ -428,6 +437,7 @@ sub notice (@) {
   db_port       => '',
   keep          => 0,
   ordered       => 0,
+  flip          => 0,
   random        => 0,
   schema        => undef,
   sample_schema => '_pg_sample',
@@ -449,6 +459,7 @@ GetOptions(\%opt,
   "limit=s@",
   "no-privileges|no-acl|x",
   "ordered",
+  "flip",
   "random",
   "sample_schema=s",
   "schema=s",
@@ -590,33 +601,37 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
 
     if ($_->[1] eq '*') { # include all rows
       $limit = '';
-    } elsif ($_->[1] =~ /^\d+$/) { # numeric value turned into LIMIT
+    }
+    elsif ($_->[1] =~ /^\d+$/) { # numeric value turned into LIMIT
       if (!$opt{random} || $pg_version < version->declare('9.5')) {
         $limit = "LIMIT $_->[1]";
-      } else {
+      }
+      else {
         my ($table_num_rows) = $dbh->selectrow_array(qq{
           SELECT greatest(count(*), ?) FROM $table
         }, undef, $_->[1]);
         my $percent = 100 * $_->[1] / $table_num_rows;
         $tablesample = "TABLESAMPLE BERNOULLI ($percent)";
       }
-    } elsif ($_->[1] =~ /^\d+%$/) { # percent value turned into LIMIT
+    }
+    elsif ($_->[1] =~ /^\d+%$/) { # percent value turned into LIMIT
       if (not $opt{random} or $pg_version < version->declare('9.5')) {
         my ($table_num_rows) = $dbh->selectrow_array(qq{ SELECT count(*) FROM $table });
         my $percent = (substr $_->[1], 0, (length $_->[1]) - 1) / 100;
         my $total_rows = int($table_num_rows * $percent);
 
         $limit = "LIMIT $total_rows";
-      } else {
+      }
+      else {
         my $percent = (substr $_->[1], 0, (length $_->[1]) - 1);
         $tablesample = "TABLESAMPLE BERNOULLI ($percent)";
       }
-    } else { # otherwise treated as subselect
+    }
+    else { # otherwise treated as subselect
       $where = "($_->[1])";
     }
-
     last;
-  }
+  } # END foreach(@limits)
   # warn "\n[LIMIT] $table WHERE $where $limit\n";
 
   if ($opt{random} && $pg_version < version->declare('9.5')) {
@@ -626,6 +641,9 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
     if (@cols) {
       my $cols = join ', ', map { $dbh->quote_identifier($_) } @cols;
       $order = "ORDER BY $cols";
+      if($opt{flip}){
+        $order .= " DESC";
+      }
     } else {
       notice "No candidate key found for '$table'; ignoring --ordered";
     }
@@ -815,7 +833,6 @@ foreach my $table (@tables) {
   print "ALTER TABLE $table ENABLE TRIGGER ALL;\n";
 }
 print "\n";
-
 END {
   # remove sample tables unless requested not to
   if ($created_schema && !$opt{keep}) {
