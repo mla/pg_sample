@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 
-our $VERSION = "1.13";
+our $VERSION = "1.14";
 
 =head1 NAME
 
@@ -106,6 +106,11 @@ pairs can also be specified as a single comma-separated value. For example:
   --limit="ads=*,*=300"
 
 Rules are applied in order with the first match taking precedence.
+
+=item B<--ordered>
+Select from the table records after ordering the records by primary key value
+in descending order. --ordered-desc and --ordered-asc are also available to
+control whether sort is descending or ascending, respectively.
 
 =item B<--random>
 
@@ -381,22 +386,22 @@ sub find_candidate_key {
       SELECT n.nspname AS table_schema
              ,c2.relname as table_name
              ,c.relname AS index_name
-             ,a.attname AS column_name
+             ,ar.attname AS column_name
         FROM pg_catalog.pg_class c
              LEFT JOIN pg_catalog.pg_index i ON i.indexrelid = c.oid
              LEFT JOIN pg_catalog.pg_class c2 ON i.indrelid = c2.oid
              LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c2.relnamespace
-             LEFT JOIN pg_catalog.pg_attribute a ON (
-               i.indexrelid = a.attrelid
-               AND a.attnum > 0
-               AND NOT a.attisdropped
+             LEFT JOIN pg_catalog.pg_attribute ar ON (
+               ar.attrelid = c2.oid
+               AND ar.attnum = ANY(i.indkey)
+               AND NOT ar.attisdropped
              )
        WHERE c.relkind = 'i'
              AND n.nspname = ?
              AND c2.relname = ?
              AND (indisprimary OR indisunique)
              -- exclude partial and functional indexes since we
-             -- don't know how to express them
+             -- don't know how to express them from perl
              AND indexprs IS NULL AND indpred IS NULL
     ORDER BY i.indisprimary DESC -- prefer primary key
              ,index_name
@@ -449,6 +454,8 @@ GetOptions(\%opt,
   "limit=s@",
   "no-privileges|no-acl|x",
   "ordered",
+  "ordered_desc|ordered-desc",
+  "ordered_asc|ordered-asc",
   "random",
   "sample_schema=s",
   "schema=s",
@@ -468,6 +475,10 @@ if ($opt{help}) {
   exit 0;
 }
 
+$opt{ordered} = $opt{ordered_desc} ? 'DESC'
+              : $opt{ordered_asc}  ? 'ASC'
+              : $opt{ordered}      ? 'DESC'
+              : undef;
 if ($opt{random} && $opt{ordered}) {
   print("Error: --random and --ordered are mutually exclusive");
   exit 1;
@@ -621,10 +632,14 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
 
   if ($opt{random} && $pg_version < version->declare('9.5')) {
     $order = $opt{random} ? 'ORDER BY random()' : '';
-  } elsif ($opt{ordered}) {
+  } elsif (my $direction = $opt{ordered}) {
     my @cols = find_candidate_key($table);
     if (@cols) {
-      my $cols = join ', ', map { $dbh->quote_identifier($_) } @cols;
+      my $cols = join ', ',
+        map { "$_ $direction" }
+        map { $dbh->quote_identifier($_) }
+        @cols
+      ;
       $order = "ORDER BY $cols";
     } else {
       notice "No candidate key found for '$table'; ignoring --ordered";

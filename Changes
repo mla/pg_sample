@@ -1,3 +1,9 @@
+1.14
+  - Added --ordered-desc and --ordered-asc options to control sort order.
+    Changed default --ordered to be descending as it seems more commonly
+    wanted. (thanks to @jmborr)
+  - Changed query to fetch indexes to handle renamed indexes better.
+
 1.13 Jan 10, 2022
 
   - Fix -p short option (thanks to Jacek Trociński @jacektrocinski)
