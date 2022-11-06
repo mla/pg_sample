@@ -611,7 +611,7 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
         my $percent = 100 * $_->[1] / $table_num_rows;
         $tablesample = "TABLESAMPLE BERNOULLI ($percent)";
       }
-    } elsif ($_->[1] =~ /^\d+%$/) { # percent value turned into LIMIT
+    } elsif ($_->[1] =~ /^\d+(\.\d+)?%$/) { # percent value turned into LIMIT
       if (not $opt{random} or $pg_version < version->declare('9.5')) {
         my ($table_num_rows) = $dbh->selectrow_array(qq{ SELECT count(*) FROM $table });
         my $percent = (substr $_->[1], 0, (length $_->[1]) - 1) / 100;
