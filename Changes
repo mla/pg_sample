@@ -1,3 +1,6 @@
+1.15
+  - Allow fractional --limit percentage (thanks to @michaele-blend)
+
 1.14
   - Added --ordered-desc and --ordered-asc options to control sort order.
     Changed default --ordered to be descending as it seems more commonly
