@@ -200,9 +200,8 @@ use Carp;
 use Getopt::Long qw/ GetOptions :config no_ignore_case /;
 use DBI;
 use DBD::Pg 2.0.0;
-use Readonly;
 
-Readonly my $MAX_IDENTIFIER_LENGTH => 63;
+our $MAX_IDENTIFIER_LENGTH = 63;
 
 $SIG{TERM} = $SIG{INT} = $SIG{QUIT} = $SIG{HUP} = sub {
   my $signal = shift;
