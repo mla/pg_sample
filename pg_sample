@@ -200,6 +200,9 @@ use Carp;
 use Getopt::Long qw/ GetOptions :config no_ignore_case /;
 use DBI;
 use DBD::Pg 2.0.0;
+use Readonly;
+
+Readonly my $MAX_IDENTIFIER_LENGTH => 63;
 
 $SIG{TERM} = $SIG{INT} = $SIG{QUIT} = $SIG{HUP} = sub {
   my $signal = shift;
@@ -369,11 +372,27 @@ sub quote_constant (@) {
 # value of --schema).
 #
 # @param Table instance
-sub sample_table ($) {
-  my $table = shift;
+{
+  my $seq = 0;
+  my %cache;
 
-  my $sample_table = join '_', $table->schema || 'public', $table->table;
-  return Table->new($opt{sample_schema}, $sample_table);
+  sub sample_table ($) {
+    my $table = shift;
+  
+    my $key = join '_', $table->schema || 'public', $table->table;
+
+    my $sample_table = $cache{ $key } //= do {
+      my $name;
+      do {
+        # make sure sample table names are unique and not too long
+        $name = sprintf '%04x__%s', ++$seq, $key;
+        $name = substr $name, 0, $MAX_IDENTIFIER_LENGTH;
+      } until !exists $cache{ $name };
+      $name;
+    };
+
+    return Table->new($opt{sample_schema}, $sample_table);
+  }
 }
 
 
