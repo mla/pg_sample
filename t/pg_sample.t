@@ -26,7 +26,7 @@ use warnings;
 use Carp;
 use DBI;
 use Getopt::Long qw/ GetOptions :config no_ignore_case /;
-use Test::More tests => 14;
+use Test::More tests => 15;
 
 $| = 1;
 
@@ -191,6 +191,60 @@ $dbh->do(qq{
 });
 
 
+### Long identifier
+
+  # We construct a temporary table name based on the combination
+  # of the schema and table. That was exceeding the maximum identifier
+  # length in some cases. We're now truncating the temporary table
+  # names when necessary.
+
+  my $maxlen = 63;
+  eval {
+    my $config = $dbh->selectrow_hashref(q{
+      SELECT current_setting('max_identifier_length') AS namedatalen
+    });
+    $config //= {};
+    $maxlen = $config->{namedatalen} // $maxlen;
+  };
+  if ($@) {
+    diag("Unable to determine max identifer length: $@");
+    diag("Defaulting to max identifier length of '$maxlen'");
+  } else {
+    diag("Max identifier length: $maxlen");
+  }
+
+  my $long_schema = 'long_schema_' . ('X' x $maxlen);
+  $long_schema = substr $long_schema, 0, $maxlen;
+  $dbh->do("CREATE SCHEMA $long_schema");
+
+  my $long_name = 'long_name_' . ('X' x $maxlen);
+  $long_name = substr $long_name, 0, $maxlen - 1;
+  $long_name .= '1';
+
+  $dbh->do(qq{
+    CREATE TABLE $long_schema.$long_name (
+      id int PRIMARY KEY
+    );
+  });
+  for (1..10) {
+    $dbh->do("INSERT INTO $long_schema.$long_name (id) VALUES ($_)");
+  }
+
+  $dbh->do(qq{
+    CREATE TABLE $long_schema.child (
+      id int PRIMARY KEY
+      ,parent_id int NOT NULL REFERENCES $long_schema.$long_name
+    );
+  });
+  for (1..10) {
+    $dbh->do("INSERT INTO $long_schema.child (id, parent_id) VALUES ($_, $_)");
+  }
+
+
+### End long identifier
+
+
+
 ### Partitioning
 
 eval {
@@ -256,6 +310,11 @@ is($row->{name}, "\\.", "escaping");
 # without --ordered, test_ordered returns as per clustered order
 my($ord) = $dbh->selectrow_array(qq{ SELECT STRING_AGG(id::text, ',') FROM "test_ordered" GROUP BY TRUE });
 is($ord, '2,1', "ordered test case broken, this should return by clustered order");
+
+($cnt) = $dbh->selectrow_array("SELECT count(*) FROM $long_schema.$long_name");
+is($cnt, 10, "long table name should have 10 rows");
+
+
 
 @opts = ('--ordered');
 push @opts, '--verbose' if $opt{verbose};

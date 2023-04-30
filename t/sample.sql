@@ -2,12 +2,19 @@
 -- PostgreSQL database dump
 --
 
+-- Dumped from database version 13.10 (Ubuntu 13.10-1.pgdg20.04+1)
+-- Dumped by pg_dump version 14.7 (Ubuntu 14.7-1.pgdg20.04+1)
+
 SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
 SET client_encoding = 'UTF8';
-SET standard_conforming_strings = off;
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
 SET check_function_bodies = false;
+SET xmloption = content;
 SET client_min_messages = warning;
-SET escape_string_warning = off;
+SET row_security = off;
 
 --
 -- Name: S'"chema; Type: SCHEMA; Schema: -; Owner: mla
@@ -16,484 +23,674 @@ SET escape_string_warning = off;
 CREATE SCHEMA "S'""chema";
 
 
-SET search_path = "S'""chema", pg_catalog;
+ALTER SCHEMA "S'""chema" OWNER TO mla;
+
+--
+-- Name: long_schema_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx; Type: SCHEMA; Schema: -; Owner: mla
+--
+
+CREATE SCHEMA long_schema_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx;
+
+
+ALTER SCHEMA long_schema_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx OWNER TO mla;
+
+--
+-- Name: pg_repack; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS pg_repack WITH SCHEMA public;
+
+
+--
+-- Name: EXTENSION pg_repack; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION pg_repack IS 'Reorganize tables in PostgreSQL databases with minimal locks';
+
 
 SET default_tablespace = '';
 
-SET default_with_oids = false;
+SET default_table_access_method = heap;
 
 --
--- Name: table; Type: TABLE; Schema: S'"chema; Owner: mla; Tablespace: 
+-- Name: table; Type: TABLE; Schema: S'"chema; Owner: mla
 --
 
-CREATE TABLE "table" (
-    "table" text NOT NULL -- test using reserved word for column
+CREATE TABLE "S'""chema"."table" (
+    "table" text NOT NULL
 );
 
 
+ALTER TABLE "S'""chema"."table" OWNER TO mla;
+
 --
--- Name: table_details; Type: TABLE; Schema: S'"chema; Owner: mla; Tablespace: 
+-- Name: table_details; Type: TABLE; Schema: S'"chema; Owner: mla
 --
 
-CREATE TABLE table_details (
+CREATE TABLE "S'""chema".table_details (
     table_detail_id integer NOT NULL,
     "table" text NOT NULL
 );
 
 
+ALTER TABLE "S'""chema".table_details OWNER TO mla;
+
 --
 -- Name: table_details_table_detail_id_seq; Type: SEQUENCE; Schema: S'"chema; Owner: mla
 --
 
-CREATE SEQUENCE table_details_table_detail_id_seq
+CREATE SEQUENCE "S'""chema".table_details_table_detail_id_seq
+    AS integer
     START WITH 1
     INCREMENT BY 1
-    NO MAXVALUE
     NO MINVALUE
+    NO MAXVALUE
     CACHE 1;
 
+
+ALTER TABLE "S'""chema".table_details_table_detail_id_seq OWNER TO mla;
 
 --
 -- Name: table_details_table_detail_id_seq; Type: SEQUENCE OWNED BY; Schema: S'"chema; Owner: mla
 --
 
-ALTER SEQUENCE table_details_table_detail_id_seq OWNED BY table_details.table_detail_id;
+ALTER SEQUENCE "S'""chema".table_details_table_detail_id_seq OWNED BY "S'""chema".table_details.table_detail_id;
 
-
-SET search_path = public, pg_catalog;
 
 --
--- Name: child1; Type: TABLE; Schema: public; Owner: mla; Tablespace: 
+-- Name: child; Type: TABLE; Schema: long_schema_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx; Owner: mla
 --
 
-CREATE TABLE child1 (
+CREATE TABLE long_schema_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.child (
+    id integer NOT NULL,
+    parent_id integer NOT NULL
+);
+
+
+ALTER TABLE long_schema_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.child OWNER TO mla;
+
+--
+-- Name: long_name_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1; Type: TABLE; Schema: long_schema_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx; Owner: mla
+--
+
+CREATE TABLE long_schema_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.long_name_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1 (
+    id integer NOT NULL
+);
+
+
+ALTER TABLE long_schema_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.long_name_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1 OWNER TO mla;
+
+--
+-- Name: child1; Type: TABLE; Schema: public; Owner: mla
+--
+
+CREATE TABLE public.child1 (
     child_id integer NOT NULL,
     name text NOT NULL,
     parent_id integer
 );
 
 
+ALTER TABLE public.child1 OWNER TO mla;
+
 --
--- Name: child10; Type: TABLE; Schema: public; Owner: mla; Tablespace: 
+-- Name: child10; Type: TABLE; Schema: public; Owner: mla
 --
 
-CREATE TABLE child10 (
+CREATE TABLE public.child10 (
     child_id integer NOT NULL,
     name text NOT NULL,
     parent_id integer
 );
 
 
+ALTER TABLE public.child10 OWNER TO mla;
+
 --
--- Name: child2; Type: TABLE; Schema: public; Owner: mla; Tablespace: 
+-- Name: child2; Type: TABLE; Schema: public; Owner: mla
 --
 
-CREATE TABLE child2 (
+CREATE TABLE public.child2 (
     child_id integer NOT NULL,
     name text NOT NULL,
     parent_id integer
 );
 
 
+ALTER TABLE public.child2 OWNER TO mla;
+
 --
--- Name: child3; Type: TABLE; Schema: public; Owner: mla; Tablespace: 
+-- Name: child3; Type: TABLE; Schema: public; Owner: mla
 --
 
-CREATE TABLE child3 (
+CREATE TABLE public.child3 (
     child_id integer NOT NULL,
     name text NOT NULL,
     parent_id integer
 );
 
 
+ALTER TABLE public.child3 OWNER TO mla;
+
 --
--- Name: child4; Type: TABLE; Schema: public; Owner: mla; Tablespace: 
+-- Name: child4; Type: TABLE; Schema: public; Owner: mla
 --
 
-CREATE TABLE child4 (
+CREATE TABLE public.child4 (
     child_id integer NOT NULL,
     name text NOT NULL,
     parent_id integer
 );
 
 
+ALTER TABLE public.child4 OWNER TO mla;
+
 --
--- Name: child5; Type: TABLE; Schema: public; Owner: mla; Tablespace: 
+-- Name: child5; Type: TABLE; Schema: public; Owner: mla
 --
 
-CREATE TABLE child5 (
+CREATE TABLE public.child5 (
     child_id integer NOT NULL,
     name text NOT NULL,
     parent_id integer
 );
 
 
+ALTER TABLE public.child5 OWNER TO mla;
+
 --
--- Name: child6; Type: TABLE; Schema: public; Owner: mla; Tablespace: 
+-- Name: child6; Type: TABLE; Schema: public; Owner: mla
 --
 
-CREATE TABLE child6 (
+CREATE TABLE public.child6 (
     child_id integer NOT NULL,
     name text NOT NULL,
     parent_id integer
 );
 
 
+ALTER TABLE public.child6 OWNER TO mla;
+
 --
--- Name: child7; Type: TABLE; Schema: public; Owner: mla; Tablespace: 
+-- Name: child7; Type: TABLE; Schema: public; Owner: mla
 --
 
-CREATE TABLE child7 (
+CREATE TABLE public.child7 (
     child_id integer NOT NULL,
     name text NOT NULL,
     parent_id integer
 );
 
 
+ALTER TABLE public.child7 OWNER TO mla;
+
 --
--- Name: child8; Type: TABLE; Schema: public; Owner: mla; Tablespace: 
+-- Name: child8; Type: TABLE; Schema: public; Owner: mla
 --
 
-CREATE TABLE child8 (
+CREATE TABLE public.child8 (
     child_id integer NOT NULL,
     name text NOT NULL,
     parent_id integer
 );
 
 
+ALTER TABLE public.child8 OWNER TO mla;
+
 --
--- Name: child9; Type: TABLE; Schema: public; Owner: mla; Tablespace: 
+-- Name: child9; Type: TABLE; Schema: public; Owner: mla
 --
 
-CREATE TABLE child9 (
+CREATE TABLE public.child9 (
     child_id integer NOT NULL,
     name text NOT NULL,
     parent_id integer
 );
 
 
+ALTER TABLE public.child9 OWNER TO mla;
+
 --
--- Name: parent; Type: TABLE; Schema: public; Owner: mla; Tablespace: 
+-- Name: parent; Type: TABLE; Schema: public; Owner: mla
 --
 
-CREATE TABLE parent (
+CREATE TABLE public.parent (
     parent_id integer NOT NULL,
     name text NOT NULL,
     favorite_child_id integer
 );
 
 
-SET search_path = "S'""chema", pg_catalog;
+ALTER TABLE public.parent OWNER TO mla;
 
 --
--- Name: table_detail_id; Type: DEFAULT; Schema: S'"chema; Owner: mla
+-- Name: partition_parent; Type: TABLE; Schema: public; Owner: mla
 --
 
-ALTER TABLE table_details ALTER COLUMN table_detail_id SET DEFAULT nextval('table_details_table_detail_id_seq'::regclass);
+CREATE TABLE public.partition_parent (
+    id integer NOT NULL
+)
+PARTITION BY RANGE (id);
+
+
+ALTER TABLE public.partition_parent OWNER TO mla;
+
+--
+-- Name: partition_child; Type: TABLE; Schema: public; Owner: mla
+--
+
+CREATE TABLE public.partition_child (
+    id integer NOT NULL
+);
+
+
+ALTER TABLE public.partition_child OWNER TO mla;
+
+--
+-- Name: test_ordered; Type: TABLE; Schema: public; Owner: mla
+--
+
+CREATE TABLE public.test_ordered (
+    id integer NOT NULL,
+    name text
+);
+
+
+ALTER TABLE public.test_ordered OWNER TO mla;
+
+--
+-- Name: test_ordered_id_seq; Type: SEQUENCE; Schema: public; Owner: mla
+--
+
+CREATE SEQUENCE public.test_ordered_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.test_ordered_id_seq OWNER TO mla;
+
+--
+-- Name: test_ordered_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: mla
+--
+
+ALTER SEQUENCE public.test_ordered_id_seq OWNED BY public.test_ordered.id;
 
 
 --
--- Name: table_details_pkey; Type: CONSTRAINT; Schema: S'"chema; Owner: mla; Tablespace: 
+-- Name: partition_child; Type: TABLE ATTACH; Schema: public; Owner: mla
 --
 
-ALTER TABLE ONLY table_details
+ALTER TABLE ONLY public.partition_parent ATTACH PARTITION public.partition_child FOR VALUES FROM (0) TO (100);
+
+
+--
+-- Name: table_details table_detail_id; Type: DEFAULT; Schema: S'"chema; Owner: mla
+--
+
+ALTER TABLE ONLY "S'""chema".table_details ALTER COLUMN table_detail_id SET DEFAULT nextval('"S''""chema".table_details_table_detail_id_seq'::regclass);
+
+
+--
+-- Name: test_ordered id; Type: DEFAULT; Schema: public; Owner: mla
+--
+
+ALTER TABLE ONLY public.test_ordered ALTER COLUMN id SET DEFAULT nextval('public.test_ordered_id_seq'::regclass);
+
+
+--
+-- Name: table_details table_details_pkey; Type: CONSTRAINT; Schema: S'"chema; Owner: mla
+--
+
+ALTER TABLE ONLY "S'""chema".table_details
     ADD CONSTRAINT table_details_pkey PRIMARY KEY (table_detail_id);
 
 
 --
--- Name: table_pkey; Type: CONSTRAINT; Schema: S'"chema; Owner: mla; Tablespace: 
+-- Name: table table_pkey; Type: CONSTRAINT; Schema: S'"chema; Owner: mla
 --
 
-ALTER TABLE ONLY "table"
+ALTER TABLE ONLY "S'""chema"."table"
     ADD CONSTRAINT table_pkey PRIMARY KEY ("table");
 
 
-SET search_path = public, pg_catalog;
-
 --
--- Name: child10_name_key; Type: CONSTRAINT; Schema: public; Owner: mla; Tablespace: 
+-- Name: child child_pkey; Type: CONSTRAINT; Schema: long_schema_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx; Owner: mla
 --
 
-ALTER TABLE ONLY child10
+ALTER TABLE ONLY long_schema_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.child
+    ADD CONSTRAINT child_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: long_name_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1 long_name_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx_pkey; Type: CONSTRAINT; Schema: long_schema_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx; Owner: mla
+--
+
+ALTER TABLE ONLY long_schema_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.long_name_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1
+    ADD CONSTRAINT long_name_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: child10 child10_name_key; Type: CONSTRAINT; Schema: public; Owner: mla
+--
+
+ALTER TABLE ONLY public.child10
     ADD CONSTRAINT child10_name_key UNIQUE (name);
 
 
 --
--- Name: child10_pkey; Type: CONSTRAINT; Schema: public; Owner: mla; Tablespace: 
+-- Name: child10 child10_pkey; Type: CONSTRAINT; Schema: public; Owner: mla
 --
 
-ALTER TABLE ONLY child10
+ALTER TABLE ONLY public.child10
     ADD CONSTRAINT child10_pkey PRIMARY KEY (child_id);
 
 
 --
--- Name: child1_name_key; Type: CONSTRAINT; Schema: public; Owner: mla; Tablespace: 
+-- Name: child1 child1_name_key; Type: CONSTRAINT; Schema: public; Owner: mla
 --
 
-ALTER TABLE ONLY child1
+ALTER TABLE ONLY public.child1
     ADD CONSTRAINT child1_name_key UNIQUE (name);
 
 
 --
--- Name: child1_pkey; Type: CONSTRAINT; Schema: public; Owner: mla; Tablespace: 
+-- Name: child1 child1_pkey; Type: CONSTRAINT; Schema: public; Owner: mla
 --
 
-ALTER TABLE ONLY child1
+ALTER TABLE ONLY public.child1
     ADD CONSTRAINT child1_pkey PRIMARY KEY (child_id);
 
 
 --
--- Name: child2_name_key; Type: CONSTRAINT; Schema: public; Owner: mla; Tablespace: 
+-- Name: child2 child2_name_key; Type: CONSTRAINT; Schema: public; Owner: mla
 --
 
-ALTER TABLE ONLY child2
+ALTER TABLE ONLY public.child2
     ADD CONSTRAINT child2_name_key UNIQUE (name);
 
 
 --
--- Name: child2_pkey; Type: CONSTRAINT; Schema: public; Owner: mla; Tablespace: 
+-- Name: child2 child2_pkey; Type: CONSTRAINT; Schema: public; Owner: mla
 --
 
-ALTER TABLE ONLY child2
+ALTER TABLE ONLY public.child2
     ADD CONSTRAINT child2_pkey PRIMARY KEY (child_id);
 
 
 --
--- Name: child3_name_key; Type: CONSTRAINT; Schema: public; Owner: mla; Tablespace: 
+-- Name: child3 child3_name_key; Type: CONSTRAINT; Schema: public; Owner: mla
 --
 
-ALTER TABLE ONLY child3
+ALTER TABLE ONLY public.child3
     ADD CONSTRAINT child3_name_key UNIQUE (name);
 
 
 --
--- Name: child3_pkey; Type: CONSTRAINT; Schema: public; Owner: mla; Tablespace: 
+-- Name: child3 child3_pkey; Type: CONSTRAINT; Schema: public; Owner: mla
 --
 
-ALTER TABLE ONLY child3
+ALTER TABLE ONLY public.child3
     ADD CONSTRAINT child3_pkey PRIMARY KEY (child_id);
 
 
 --
--- Name: child4_name_key; Type: CONSTRAINT; Schema: public; Owner: mla; Tablespace: 
+-- Name: child4 child4_name_key; Type: CONSTRAINT; Schema: public; Owner: mla
 --
 
-ALTER TABLE ONLY child4
+ALTER TABLE ONLY public.child4
     ADD CONSTRAINT child4_name_key UNIQUE (name);
 
 
 --
--- Name: child4_pkey; Type: CONSTRAINT; Schema: public; Owner: mla; Tablespace: 
+-- Name: child4 child4_pkey; Type: CONSTRAINT; Schema: public; Owner: mla
 --
 
-ALTER TABLE ONLY child4
+ALTER TABLE ONLY public.child4
     ADD CONSTRAINT child4_pkey PRIMARY KEY (child_id);
 
 
 --
--- Name: child5_name_key; Type: CONSTRAINT; Schema: public; Owner: mla; Tablespace: 
+-- Name: child5 child5_name_key; Type: CONSTRAINT; Schema: public; Owner: mla
 --
 
-ALTER TABLE ONLY child5
+ALTER TABLE ONLY public.child5
     ADD CONSTRAINT child5_name_key UNIQUE (name);
 
 
 --
--- Name: child5_pkey; Type: CONSTRAINT; Schema: public; Owner: mla; Tablespace: 
+-- Name: child5 child5_pkey; Type: CONSTRAINT; Schema: public; Owner: mla
 --
 
-ALTER TABLE ONLY child5
+ALTER TABLE ONLY public.child5
     ADD CONSTRAINT child5_pkey PRIMARY KEY (child_id);
 
 
 --
--- Name: child6_name_key; Type: CONSTRAINT; Schema: public; Owner: mla; Tablespace: 
+-- Name: child6 child6_name_key; Type: CONSTRAINT; Schema: public; Owner: mla
 --
 
-ALTER TABLE ONLY child6
+ALTER TABLE ONLY public.child6
     ADD CONSTRAINT child6_name_key UNIQUE (name);
 
 
 --
--- Name: child6_pkey; Type: CONSTRAINT; Schema: public; Owner: mla; Tablespace: 
+-- Name: child6 child6_pkey; Type: CONSTRAINT; Schema: public; Owner: mla
 --
 
-ALTER TABLE ONLY child6
+ALTER TABLE ONLY public.child6
     ADD CONSTRAINT child6_pkey PRIMARY KEY (child_id);
 
 
 --
--- Name: child7_name_key; Type: CONSTRAINT; Schema: public; Owner: mla; Tablespace: 
+-- Name: child7 child7_name_key; Type: CONSTRAINT; Schema: public; Owner: mla
 --
 
-ALTER TABLE ONLY child7
+ALTER TABLE ONLY public.child7
     ADD CONSTRAINT child7_name_key UNIQUE (name);
 
 
 --
--- Name: child7_pkey; Type: CONSTRAINT; Schema: public; Owner: mla; Tablespace: 
+-- Name: child7 child7_pkey; Type: CONSTRAINT; Schema: public; Owner: mla
 --
 
-ALTER TABLE ONLY child7
+ALTER TABLE ONLY public.child7
     ADD CONSTRAINT child7_pkey PRIMARY KEY (child_id);
 
 
 --
--- Name: child8_name_key; Type: CONSTRAINT; Schema: public; Owner: mla; Tablespace: 
+-- Name: child8 child8_name_key; Type: CONSTRAINT; Schema: public; Owner: mla
 --
 
-ALTER TABLE ONLY child8
+ALTER TABLE ONLY public.child8
     ADD CONSTRAINT child8_name_key UNIQUE (name);
 
 
 --
--- Name: child8_pkey; Type: CONSTRAINT; Schema: public; Owner: mla; Tablespace: 
+-- Name: child8 child8_pkey; Type: CONSTRAINT; Schema: public; Owner: mla
 --
 
-ALTER TABLE ONLY child8
+ALTER TABLE ONLY public.child8
     ADD CONSTRAINT child8_pkey PRIMARY KEY (child_id);
 
 
 --
--- Name: child9_name_key; Type: CONSTRAINT; Schema: public; Owner: mla; Tablespace: 
+-- Name: child9 child9_name_key; Type: CONSTRAINT; Schema: public; Owner: mla
 --
 
-ALTER TABLE ONLY child9
+ALTER TABLE ONLY public.child9
     ADD CONSTRAINT child9_name_key UNIQUE (name);
 
 
 --
--- Name: child9_pkey; Type: CONSTRAINT; Schema: public; Owner: mla; Tablespace: 
+-- Name: child9 child9_pkey; Type: CONSTRAINT; Schema: public; Owner: mla
 --
 
-ALTER TABLE ONLY child9
+ALTER TABLE ONLY public.child9
     ADD CONSTRAINT child9_pkey PRIMARY KEY (child_id);
 
 
 --
--- Name: parent_name_key; Type: CONSTRAINT; Schema: public; Owner: mla; Tablespace: 
+-- Name: parent parent_name_key; Type: CONSTRAINT; Schema: public; Owner: mla
 --
 
-ALTER TABLE ONLY parent
+ALTER TABLE ONLY public.parent
     ADD CONSTRAINT parent_name_key UNIQUE (name);
 
 
 --
--- Name: parent_pkey; Type: CONSTRAINT; Schema: public; Owner: mla; Tablespace: 
+-- Name: parent parent_pkey; Type: CONSTRAINT; Schema: public; Owner: mla
 --
 
-ALTER TABLE ONLY parent
+ALTER TABLE ONLY public.parent
     ADD CONSTRAINT parent_pkey PRIMARY KEY (parent_id);
 
 
-SET search_path = "S'""chema", pg_catalog;
-
 --
--- Name: table_details_table_fkey; Type: FK CONSTRAINT; Schema: S'"chema; Owner: mla
+-- Name: partition_parent partition_parent_pkey; Type: CONSTRAINT; Schema: public; Owner: mla
 --
 
-ALTER TABLE ONLY table_details
-    ADD CONSTRAINT table_details_table_fkey FOREIGN KEY ("table") REFERENCES "table"("table") ON UPDATE CASCADE ON DELETE CASCADE;
-
-
-SET search_path = public, pg_catalog;
-
---
--- Name: child10_parent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mla
---
-
-ALTER TABLE ONLY child10
-    ADD CONSTRAINT child10_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES parent(parent_id) ON UPDATE CASCADE;
+ALTER TABLE ONLY public.partition_parent
+    ADD CONSTRAINT partition_parent_pkey PRIMARY KEY (id);
 
 
 --
--- Name: child1_parent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mla
+-- Name: partition_child partition_child_pkey; Type: CONSTRAINT; Schema: public; Owner: mla
 --
 
-ALTER TABLE ONLY child1
-    ADD CONSTRAINT child1_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES parent(parent_id) ON UPDATE CASCADE;
-
-
---
--- Name: child2_parent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mla
---
-
-ALTER TABLE ONLY child2
-    ADD CONSTRAINT child2_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES parent(parent_id) ON UPDATE CASCADE;
+ALTER TABLE ONLY public.partition_child
+    ADD CONSTRAINT partition_child_pkey PRIMARY KEY (id);
 
 
 --
--- Name: child3_parent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mla
+-- Name: test_ordered test_ordered_pkey; Type: CONSTRAINT; Schema: public; Owner: mla
 --
 
-ALTER TABLE ONLY child3
-    ADD CONSTRAINT child3_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES parent(parent_id) ON UPDATE CASCADE;
-
-
---
--- Name: child4_parent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mla
---
-
-ALTER TABLE ONLY child4
-    ADD CONSTRAINT child4_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES parent(parent_id) ON UPDATE CASCADE;
+ALTER TABLE ONLY public.test_ordered
+    ADD CONSTRAINT test_ordered_pkey PRIMARY KEY (id);
 
 
 --
--- Name: child5_parent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mla
+-- Name: my_index; Type: INDEX; Schema: public; Owner: mla
 --
 
-ALTER TABLE ONLY child5
-    ADD CONSTRAINT child5_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES parent(parent_id) ON UPDATE CASCADE;
+CREATE INDEX my_index ON public.test_ordered USING btree (name);
 
-
---
--- Name: child6_parent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mla
---
-
-ALTER TABLE ONLY child6
-    ADD CONSTRAINT child6_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES parent(parent_id) ON UPDATE CASCADE;
+ALTER TABLE public.test_ordered CLUSTER ON my_index;
 
 
 --
--- Name: child7_parent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mla
+-- Name: partition_child_pkey; Type: INDEX ATTACH; Schema: public; Owner: mla
 --
 
-ALTER TABLE ONLY child7
-    ADD CONSTRAINT child7_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES parent(parent_id) ON UPDATE CASCADE;
-
-
---
--- Name: child8_parent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mla
---
-
-ALTER TABLE ONLY child8
-    ADD CONSTRAINT child8_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES parent(parent_id) ON UPDATE CASCADE;
+ALTER INDEX public.partition_parent_pkey ATTACH PARTITION public.partition_child_pkey;
 
 
 --
--- Name: child9_parent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mla
+-- Name: table_details table_details_table_fkey; Type: FK CONSTRAINT; Schema: S'"chema; Owner: mla
 --
 
-ALTER TABLE ONLY child9
-    ADD CONSTRAINT child9_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES parent(parent_id) ON UPDATE CASCADE;
-
-
---
--- Name: parent_favorite_child_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mla
---
-
-ALTER TABLE ONLY parent
-    ADD CONSTRAINT parent_favorite_child_id_fkey FOREIGN KEY (favorite_child_id) REFERENCES child1(child_id);
+ALTER TABLE ONLY "S'""chema".table_details
+    ADD CONSTRAINT table_details_table_fkey FOREIGN KEY ("table") REFERENCES "S'""chema"."table"("table") ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
--- Name: public; Type: ACL; Schema: -; Owner: postgres
+-- Name: child child_parent_id_fkey; Type: FK CONSTRAINT; Schema: long_schema_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx; Owner: mla
 --
 
-REVOKE ALL ON SCHEMA public FROM PUBLIC;
-REVOKE ALL ON SCHEMA public FROM postgres;
-GRANT ALL ON SCHEMA public TO postgres;
-GRANT ALL ON SCHEMA public TO PUBLIC;
+ALTER TABLE ONLY long_schema_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.child
+    ADD CONSTRAINT child_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES long_schema_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.long_name_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1(id);
+
+
+--
+-- Name: child10 child10_parent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mla
+--
+
+ALTER TABLE ONLY public.child10
+    ADD CONSTRAINT child10_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.parent(parent_id) ON UPDATE CASCADE;
+
+
+--
+-- Name: child1 child1_parent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mla
+--
+
+ALTER TABLE ONLY public.child1
+    ADD CONSTRAINT child1_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.parent(parent_id) ON UPDATE CASCADE;
+
+
+--
+-- Name: child2 child2_parent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mla
+--
+
+ALTER TABLE ONLY public.child2
+    ADD CONSTRAINT child2_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.parent(parent_id) ON UPDATE CASCADE;
+
+
+--
+-- Name: child3 child3_parent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mla
+--
+
+ALTER TABLE ONLY public.child3
+    ADD CONSTRAINT child3_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.parent(parent_id) ON UPDATE CASCADE;
+
+
+--
+-- Name: child4 child4_parent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mla
+--
+
+ALTER TABLE ONLY public.child4
+    ADD CONSTRAINT child4_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.parent(parent_id) ON UPDATE CASCADE;
+
+
+--
+-- Name: child5 child5_parent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mla
+--
+
+ALTER TABLE ONLY public.child5
+    ADD CONSTRAINT child5_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.parent(parent_id) ON UPDATE CASCADE;
+
+
+--
+-- Name: child6 child6_parent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mla
+--
+
+ALTER TABLE ONLY public.child6
+    ADD CONSTRAINT child6_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.parent(parent_id) ON UPDATE CASCADE;
+
+
+--
+-- Name: child7 child7_parent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mla
+--
+
+ALTER TABLE ONLY public.child7
+    ADD CONSTRAINT child7_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.parent(parent_id) ON UPDATE CASCADE;
+
+
+--
+-- Name: child8 child8_parent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mla
+--
+
+ALTER TABLE ONLY public.child8
+    ADD CONSTRAINT child8_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.parent(parent_id) ON UPDATE CASCADE;
+
+
+--
+-- Name: child9 child9_parent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mla
+--
+
+ALTER TABLE ONLY public.child9
+    ADD CONSTRAINT child9_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.parent(parent_id) ON UPDATE CASCADE;
+
+
+--
+-- Name: parent parent_favorite_child_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: mla
+--
+
+ALTER TABLE ONLY public.parent
+    ADD CONSTRAINT parent_favorite_child_id_fkey FOREIGN KEY (favorite_child_id) REFERENCES public.child1(child_id);
 
 
 --
@@ -502,15 +699,20 @@ GRANT ALL ON SCHEMA public TO PUBLIC;
 
 
 SET client_encoding = 'UTF8';
-SET standard_conforming_strings = off;
+SET standard_conforming_strings = on;
 SET check_function_bodies = false;
 SET client_min_messages = warning;
 SET escape_string_warning = off;
 
 
 SELECT pg_catalog.setval('"S''""chema"."table_details_table_detail_id_seq"', 1);
+SELECT pg_catalog.setval('"public"."test_ordered_id_seq"', 1);
 
 
+ALTER TABLE "S'""chema"."table" DISABLE TRIGGER ALL;
+ALTER TABLE "S'""chema"."table_details" DISABLE TRIGGER ALL;
+ALTER TABLE "long_schema_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"."child" DISABLE TRIGGER ALL;
+ALTER TABLE "long_schema_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"."long_name_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1" DISABLE TRIGGER ALL;
 ALTER TABLE "public"."child1" DISABLE TRIGGER ALL;
 ALTER TABLE "public"."child10" DISABLE TRIGGER ALL;
 ALTER TABLE "public"."child2" DISABLE TRIGGER ALL;
@@ -522,8 +724,40 @@ ALTER TABLE "public"."child7" DISABLE TRIGGER ALL;
 ALTER TABLE "public"."child8" DISABLE TRIGGER ALL;
 ALTER TABLE "public"."child9" DISABLE TRIGGER ALL;
 ALTER TABLE "public"."parent" DISABLE TRIGGER ALL;
-ALTER TABLE "S'""chema"."table" DISABLE TRIGGER ALL;
-ALTER TABLE "S'""chema"."table_details" DISABLE TRIGGER ALL;
+ALTER TABLE "public"."partition_child" DISABLE TRIGGER ALL;
+ALTER TABLE "public"."test_ordered" DISABLE TRIGGER ALL;
+
+COPY "S'""chema"."table" FROM stdin;
+\.
+
+COPY "S'""chema"."table_details" FROM stdin;
+\.
+
+COPY "long_schema_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"."child" FROM stdin;
+1	1
+2	2
+3	3
+4	4
+5	5
+6	6
+7	7
+8	8
+9	9
+10	10
+\.
+
+COPY "long_schema_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"."long_name_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1" FROM stdin;
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+\.
 
 COPY "public"."child1" FROM stdin;
 1	c1	1
@@ -1656,915 +1890,922 @@ COPY "public"."parent" FROM stdin;
 99	p99	\N
 100	p100	\N
 101	p101	\N
-647	p647	\N
-615	p615	\N
-623	p623	\N
-635	p635	\N
-632	p632	\N
-607	p607	\N
-692	p692	\N
-606	p606	\N
-669	p669	\N
-671	p671	\N
-700	p700	\N
-663	p663	\N
-651	p651	\N
-695	p695	\N
-674	p674	\N
-616	p616	\N
-666	p666	\N
-631	p631	\N
-672	p672	\N
-676	p676	\N
 691	p691	\N
-654	p654	\N
-650	p650	\N
-640	p640	\N
-665	p665	\N
-610	p610	\N
-609	p609	\N
-602	p602	\N
-608	p608	\N
-638	p638	\N
-680	p680	\N
-673	p673	\N
-629	p629	\N
-698	p698	\N
-613	p613	\N
-664	p664	\N
-686	p686	\N
-646	p646	\N
-670	p670	\N
-612	p612	\N
-652	p652	\N
-656	p656	\N
-614	p614	\N
-622	p622	\N
-642	p642	\N
-617	p617	\N
-662	p662	\N
-697	p697	\N
-639	p639	\N
-641	p641	\N
+660	p660	\N
+649	p649	\N
 684	p684	\N
+607	p607	\N
+658	p658	\N
+644	p644	\N
+686	p686	\N
+642	p642	\N
+620	p620	\N
+674	p674	\N
+643	p643	\N
+682	p682	\N
+667	p667	\N
+653	p653	\N
+602	p602	\N
+617	p617	\N
+683	p683	\N
+616	p616	\N
+632	p632	\N
+614	p614	\N
+609	p609	\N
+619	p619	\N
+611	p611	\N
+646	p646	\N
+618	p618	\N
+694	p694	\N
+688	p688	\N
+603	p603	\N
+685	p685	\N
+635	p635	\N
+610	p610	\N
+699	p699	\N
+639	p639	\N
+631	p631	\N
+669	p669	\N
+655	p655	\N
+692	p692	\N
+648	p648	\N
+664	p664	\N
+700	p700	\N
+625	p625	\N
+698	p698	\N
+695	p695	\N
+662	p662	\N
 624	p624	\N
 636	p636	\N
-693	p693	\N
-696	p696	\N
-601	p601	\N
-603	p603	\N
-689	p689	\N
-645	p645	\N
-659	p659	\N
-690	p690	\N
-628	p628	\N
-688	p688	\N
-634	p634	\N
-655	p655	\N
-675	p675	\N
-649	p649	\N
-682	p682	\N
-604	p604	\N
-687	p687	\N
-644	p644	\N
-678	p678	\N
-694	p694	\N
-611	p611	\N
-658	p658	\N
-685	p685	\N
-683	p683	\N
-619	p619	\N
-699	p699	\N
-625	p625	\N
-653	p653	\N
-643	p643	\N
-681	p681	\N
 627	p627	\N
-618	p618	\N
-657	p657	\N
-661	p661	\N
-667	p667	\N
-668	p668	\N
-620	p620	\N
-621	p621	\N
-648	p648	\N
-660	p660	\N
-605	p605	\N
+672	p672	\N
+651	p651	\N
+654	p654	\N
+676	p676	\N
+652	p652	\N
+696	p696	\N
 677	p677	\N
-630	p630	\N
-633	p633	\N
-626	p626	\N
-637	p637	\N
+673	p673	\N
+629	p629	\N
+623	p623	\N
+605	p605	\N
+690	p690	\N
+665	p665	\N
+641	p641	\N
+628	p628	\N
+687	p687	\N
+604	p604	\N
+634	p634	\N
+657	p657	\N
+645	p645	\N
+615	p615	\N
+681	p681	\N
+656	p656	\N
+650	p650	\N
+622	p622	\N
+613	p613	\N
+621	p621	\N
+638	p638	\N
 679	p679	\N
-388	p388	\N
-314	p314	\N
-368	p368	\N
-356	p356	\N
-375	p375	\N
-313	p313	\N
-369	p369	\N
-350	p350	\N
-351	p351	\N
-364	p364	\N
-363	p363	\N
-330	p330	\N
-315	p315	\N
-374	p374	\N
-390	p390	\N
-391	p391	\N
-357	p357	\N
-360	p360	\N
-378	p378	\N
-329	p329	\N
-331	p331	\N
-311	p311	\N
-343	p343	\N
-379	p379	\N
-397	p397	\N
-345	p345	\N
-385	p385	\N
-336	p336	\N
-334	p334	\N
-339	p339	\N
-344	p344	\N
-312	p312	\N
-324	p324	\N
-392	p392	\N
-323	p323	\N
-341	p341	\N
-395	p395	\N
-318	p318	\N
-319	p319	\N
-349	p349	\N
-303	p303	\N
-359	p359	\N
-394	p394	\N
-326	p326	\N
-348	p348	\N
-337	p337	\N
-383	p383	\N
-347	p347	\N
-373	p373	\N
-332	p332	\N
-367	p367	\N
-304	p304	\N
-396	p396	\N
-372	p372	\N
-362	p362	\N
-352	p352	\N
-393	p393	\N
-306	p306	\N
-389	p389	\N
-320	p320	\N
-327	p327	\N
-399	p399	\N
-382	p382	\N
-316	p316	\N
-335	p335	\N
-376	p376	\N
-387	p387	\N
-302	p302	\N
-340	p340	\N
-353	p353	\N
-354	p354	\N
-342	p342	\N
-322	p322	\N
-398	p398	\N
-366	p366	\N
-338	p338	\N
-365	p365	\N
-377	p377	\N
-328	p328	\N
-308	p308	\N
-325	p325	\N
-361	p361	\N
-307	p307	\N
-358	p358	\N
-370	p370	\N
-380	p380	\N
-386	p386	\N
-310	p310	\N
-301	p301	\N
-309	p309	\N
-317	p317	\N
-400	p400	\N
-305	p305	\N
-384	p384	\N
-371	p371	\N
-321	p321	\N
-346	p346	\N
-381	p381	\N
-333	p333	\N
-355	p355	\N
-946	p946	\N
-930	p930	\N
-994	p994	\N
-958	p958	\N
-959	p959	\N
-936	p936	\N
-938	p938	\N
-951	p951	\N
-908	p908	\N
-919	p919	\N
-943	p943	\N
-910	p910	\N
-928	p928	\N
-913	p913	\N
-983	p983	\N
-985	p985	\N
-963	p963	\N
-990	p990	\N
-912	p912	\N
-945	p945	\N
-974	p974	\N
-915	p915	\N
-987	p987	\N
-937	p937	\N
-961	p961	\N
-917	p917	\N
-948	p948	\N
-906	p906	\N
-1000	p1000	\N
-925	p925	\N
-969	p969	\N
-970	p970	\N
-942	p942	\N
-947	p947	\N
-976	p976	\N
-950	p950	\N
-967	p967	\N
-998	p998	\N
-999	p999	\N
-966	p966	\N
-996	p996	\N
-902	p902	\N
-909	p909	\N
-954	p954	\N
-927	p927	\N
-914	p914	\N
-953	p953	\N
-991	p991	\N
-916	p916	\N
-980	p980	\N
-981	p981	\N
-921	p921	\N
-929	p929	\N
-904	p904	\N
-944	p944	\N
-962	p962	\N
-984	p984	\N
-905	p905	\N
-920	p920	\N
-923	p923	\N
-934	p934	\N
-956	p956	\N
-931	p931	\N
-932	p932	\N
-971	p971	\N
-989	p989	\N
-955	p955	\N
-993	p993	\N
-907	p907	\N
-940	p940	\N
-933	p933	\N
-992	p992	\N
-939	p939	\N
-952	p952	\N
-911	p911	\N
-949	p949	\N
-964	p964	\N
-978	p978	\N
-986	p986	\N
-941	p941	\N
-960	p960	\N
-995	p995	\N
-901	p901	\N
-968	p968	\N
-982	p982	\N
-903	p903	\N
-918	p918	\N
-922	p922	\N
-965	p965	\N
-988	p988	\N
-935	p935	\N
-957	p957	\N
-972	p972	\N
-975	p975	\N
-924	p924	\N
-926	p926	\N
-979	p979	\N
-997	p997	\N
-977	p977	\N
-973	p973	\N
-1	\\.	100
-738	p738	\N
-742	p742	\N
-747	p747	\N
-726	p726	\N
-713	p713	\N
-784	p784	\N
-797	p797	\N
-711	p711	\N
-722	p722	\N
-720	p720	\N
-701	p701	\N
-777	p777	\N
-800	p800	\N
-759	p759	\N
-707	p707	\N
-763	p763	\N
-743	p743	\N
-782	p782	\N
-746	p746	\N
-751	p751	\N
-758	p758	\N
-778	p778	\N
-776	p776	\N
-717	p717	\N
-740	p740	\N
-739	p739	\N
-745	p745	\N
-793	p793	\N
-772	p772	\N
-724	p724	\N
-729	p729	\N
-748	p748	\N
-769	p769	\N
-785	p785	\N
-710	p710	\N
-796	p796	\N
-702	p702	\N
-737	p737	\N
-780	p780	\N
-727	p727	\N
-756	p756	\N
-768	p768	\N
-714	p714	\N
-730	p730	\N
-733	p733	\N
-779	p779	\N
-718	p718	\N
-761	p761	\N
-791	p791	\N
-721	p721	\N
-754	p754	\N
-798	p798	\N
-709	p709	\N
-792	p792	\N
-731	p731	\N
-765	p765	\N
-770	p770	\N
-744	p744	\N
-787	p787	\N
-704	p704	\N
-708	p708	\N
-735	p735	\N
-749	p749	\N
-725	p725	\N
-760	p760	\N
-790	p790	\N
-767	p767	\N
-706	p706	\N
-786	p786	\N
-712	p712	\N
-715	p715	\N
-795	p795	\N
-764	p764	\N
-741	p741	\N
-794	p794	\N
-728	p728	\N
-789	p789	\N
-734	p734	\N
-788	p788	\N
-762	p762	\N
-766	p766	\N
-774	p774	\N
-757	p757	\N
-723	p723	\N
-771	p771	\N
-736	p736	\N
-750	p750	\N
-799	p799	\N
-773	p773	\N
-719	p719	\N
-781	p781	\N
-752	p752	\N
-783	p783	\N
-775	p775	\N
-703	p703	\N
-716	p716	\N
-755	p755	\N
-705	p705	\N
-732	p732	\N
-753	p753	\N
-211	p211	\N
-254	p254	\N
-263	p263	\N
-229	p229	\N
-239	p239	\N
-294	p294	\N
-281	p281	\N
-228	p228	\N
-250	p250	\N
-220	p220	\N
-258	p258	\N
-259	p259	\N
-280	p280	\N
-205	p205	\N
-204	p204	\N
+675	p675	\N
+630	p630	\N
+612	p612	\N
+693	p693	\N
+608	p608	\N
+661	p661	\N
+626	p626	\N
+606	p606	\N
+671	p671	\N
+659	p659	\N
+678	p678	\N
+601	p601	\N
+666	p666	\N
+670	p670	\N
+680	p680	\N
+637	p637	\N
+689	p689	\N
+647	p647	\N
+663	p663	\N
+633	p633	\N
+640	p640	\N
+697	p697	\N
+668	p668	\N
 289	p289	\N
-236	p236	\N
-231	p231	\N
-269	p269	\N
-297	p297	\N
-215	p215	\N
-245	p245	\N
-292	p292	\N
-300	p300	\N
-274	p274	\N
-276	p276	\N
-226	p226	\N
-234	p234	\N
-278	p278	\N
-270	p270	\N
-277	p277	\N
-265	p265	\N
-268	p268	\N
-279	p279	\N
-237	p237	\N
-299	p299	\N
-290	p290	\N
-221	p221	\N
-238	p238	\N
-295	p295	\N
-202	p202	\N
-222	p222	\N
-293	p293	\N
-214	p214	\N
-224	p224	\N
-207	p207	\N
-253	p253	\N
-260	p260	\N
-218	p218	\N
-298	p298	\N
-217	p217	\N
-255	p255	\N
-243	p243	\N
-206	p206	\N
-225	p225	\N
-216	p216	\N
-230	p230	\N
-203	p203	\N
-257	p257	\N
-266	p266	\N
-283	p283	\N
-271	p271	\N
-212	p212	\N
-273	p273	\N
-249	p249	\N
-287	p287	\N
-286	p286	\N
-241	p241	\N
-244	p244	\N
-240	p240	\N
-291	p291	\N
-296	p296	\N
-264	p264	\N
-233	p233	\N
-201	p201	\N
-210	p210	\N
-288	p288	\N
-209	p209	\N
-235	p235	\N
-267	p267	\N
-251	p251	\N
-247	p247	\N
-227	p227	\N
-282	p282	\N
-208	p208	\N
-232	p232	\N
-285	p285	\N
-261	p261	\N
-246	p246	\N
-223	p223	\N
-284	p284	\N
-252	p252	\N
-213	p213	\N
-219	p219	\N
-242	p242	\N
-248	p248	\N
 256	p256	\N
+233	p233	\N
+298	p298	\N
+260	p260	\N
+206	p206	\N
+238	p238	\N
+225	p225	\N
+295	p295	\N
+227	p227	\N
+211	p211	\N
+284	p284	\N
+237	p237	\N
 272	p272	\N
+297	p297	\N
+242	p242	\N
+212	p212	\N
+291	p291	\N
+202	p202	\N
+299	p299	\N
+230	p230	\N
+271	p271	\N
+263	p263	\N
+268	p268	\N
+236	p236	\N
+214	p214	\N
+248	p248	\N
+204	p204	\N
+300	p300	\N
+278	p278	\N
+265	p265	\N
+258	p258	\N
+240	p240	\N
+232	p232	\N
+216	p216	\N
+276	p276	\N
+229	p229	\N
+281	p281	\N
 275	p275	\N
+270	p270	\N
+215	p215	\N
+250	p250	\N
+273	p273	\N
+210	p210	\N
+218	p218	\N
+288	p288	\N
+251	p251	\N
+213	p213	\N
+234	p234	\N
+292	p292	\N
+253	p253	\N
+249	p249	\N
+243	p243	\N
+282	p282	\N
+259	p259	\N
+209	p209	\N
+290	p290	\N
+296	p296	\N
+203	p203	\N
+280	p280	\N
+231	p231	\N
+201	p201	\N
+279	p279	\N
+266	p266	\N
+264	p264	\N
+223	p223	\N
+293	p293	\N
+217	p217	\N
+222	p222	\N
+220	p220	\N
+252	p252	\N
+224	p224	\N
+267	p267	\N
+245	p245	\N
+283	p283	\N
 262	p262	\N
-418	p418	\N
-497	p497	\N
-459	p459	\N
-485	p485	\N
-461	p461	\N
-401	p401	\N
-417	p417	\N
-410	p410	\N
-448	p448	\N
-473	p473	\N
-429	p429	\N
-438	p438	\N
-450	p450	\N
-456	p456	\N
-493	p493	\N
-443	p443	\N
-476	p476	\N
-436	p436	\N
-419	p419	\N
-455	p455	\N
-466	p466	\N
-407	p407	\N
-415	p415	\N
-442	p442	\N
-460	p460	\N
-491	p491	\N
+247	p247	\N
+241	p241	\N
+246	p246	\N
+207	p207	\N
+244	p244	\N
+235	p235	\N
+285	p285	\N
+208	p208	\N
+205	p205	\N
+294	p294	\N
+261	p261	\N
+221	p221	\N
+219	p219	\N
+286	p286	\N
+257	p257	\N
+269	p269	\N
+277	p277	\N
+274	p274	\N
+228	p228	\N
+287	p287	\N
+254	p254	\N
+226	p226	\N
+239	p239	\N
+255	p255	\N
 447	p447	\N
-479	p479	\N
-477	p477	\N
+456	p456	\N
+403	p403	\N
+485	p485	\N
 405	p405	\N
-411	p411	\N
-465	p465	\N
-432	p432	\N
-458	p458	\N
-467	p467	\N
+484	p484	\N
+409	p409	\N
+429	p429	\N
+421	p421	\N
+499	p499	\N
+437	p437	\N
+487	p487	\N
+474	p474	\N
+495	p495	\N
+482	p482	\N
+434	p434	\N
+424	p424	\N
+418	p418	\N
+431	p431	\N
 478	p478	\N
-480	p480	\N
-453	p453	\N
-489	p489	\N
-420	p420	\N
-440	p440	\N
-433	p433	\N
+475	p475	\N
+470	p470	\N
+436	p436	\N
+415	p415	\N
+401	p401	\N
+458	p458	\N
+477	p477	\N
+451	p451	\N
+467	p467	\N
+488	p488	\N
+449	p449	\N
 464	p464	\N
+496	p496	\N
+419	p419	\N
+472	p472	\N
+426	p426	\N
+490	p490	\N
+445	p445	\N
+422	p422	\N
+494	p494	\N
+427	p427	\N
+463	p463	\N
+404	p404	\N
+442	p442	\N
+423	p423	\N
+411	p411	\N
+413	p413	\N
+452	p452	\N
+406	p406	\N
+480	p480	\N
+469	p469	\N
+461	p461	\N
+457	p457	\N
+450	p450	\N
+428	p428	\N
+500	p500	\N
+462	p462	\N
+439	p439	\N
+438	p438	\N
+491	p491	\N
+479	p479	\N
+468	p468	\N
+425	p425	\N
 483	p483	\N
+460	p460	\N
+417	p417	\N
+453	p453	\N
+448	p448	\N
+465	p465	\N
+441	p441	\N
+443	p443	\N
+471	p471	\N
+444	p444	\N
+402	p402	\N
+492	p492	\N
+430	p430	\N
+410	p410	\N
+493	p493	\N
+414	p414	\N
+408	p408	\N
+454	p454	\N
+497	p497	\N
+476	p476	\N
+433	p433	\N
+420	p420	\N
+473	p473	\N
+446	p446	\N
+455	p455	\N
+432	p432	\N
+407	p407	\N
+466	p466	\N
+459	p459	\N
+435	p435	\N
+489	p489	\N
 481	p481	\N
+412	p412	\N
+486	p486	\N
+440	p440	\N
 498	p498	\N
 416	p416	\N
-471	p471	\N
-492	p492	\N
-494	p494	\N
-462	p462	\N
-406	p406	\N
-425	p425	\N
-444	p444	\N
-434	p434	\N
-468	p468	\N
-408	p408	\N
-421	p421	\N
-472	p472	\N
-439	p439	\N
-402	p402	\N
-426	p426	\N
-451	p451	\N
-452	p452	\N
-463	p463	\N
-496	p496	\N
-403	p403	\N
-437	p437	\N
-422	p422	\N
-423	p423	\N
-454	p454	\N
-424	p424	\N
-469	p469	\N
-487	p487	\N
-430	p430	\N
-414	p414	\N
-441	p441	\N
-449	p449	\N
-500	p500	\N
-474	p474	\N
-475	p475	\N
-486	p486	\N
-484	p484	\N
-495	p495	\N
-490	p490	\N
-409	p409	\N
-470	p470	\N
-446	p446	\N
-431	p431	\N
-488	p488	\N
-427	p427	\N
-412	p412	\N
-413	p413	\N
-404	p404	\N
-499	p499	\N
-482	p482	\N
-435	p435	\N
-428	p428	\N
-457	p457	\N
-445	p445	\N
-592	p592	\N
-520	p520	\N
-547	p547	\N
-546	p546	\N
-570	p570	\N
-567	p567	\N
-504	p504	\N
-518	p518	\N
-521	p521	\N
-527	p527	\N
-534	p534	\N
-505	p505	\N
-516	p516	\N
-525	p525	\N
-597	p597	\N
-509	p509	\N
-571	p571	\N
-548	p548	\N
-566	p566	\N
-542	p542	\N
-511	p511	\N
-544	p544	\N
-533	p533	\N
-581	p581	\N
-589	p589	\N
-560	p560	\N
-541	p541	\N
-507	p507	\N
-506	p506	\N
-574	p574	\N
-586	p586	\N
-540	p540	\N
-517	p517	\N
-559	p559	\N
-588	p588	\N
-595	p595	\N
-556	p556	\N
-583	p583	\N
-591	p591	\N
-523	p523	\N
-529	p529	\N
-550	p550	\N
-573	p573	\N
-579	p579	\N
-537	p537	\N
-530	p530	\N
-553	p553	\N
-578	p578	\N
-535	p535	\N
-552	p552	\N
-561	p561	\N
-538	p538	\N
-539	p539	\N
-515	p515	\N
-568	p568	\N
-524	p524	\N
-514	p514	\N
-569	p569	\N
-512	p512	\N
-522	p522	\N
-600	p600	\N
-501	p501	\N
-536	p536	\N
-575	p575	\N
-519	p519	\N
-584	p584	\N
-555	p555	\N
-576	p576	\N
-582	p582	\N
-513	p513	\N
-531	p531	\N
-545	p545	\N
-557	p557	\N
-558	p558	\N
-564	p564	\N
-593	p593	\N
-543	p543	\N
-502	p502	\N
-565	p565	\N
-526	p526	\N
-572	p572	\N
-577	p577	\N
-590	p590	\N
-532	p532	\N
-510	p510	\N
-528	p528	\N
-594	p594	\N
-598	p598	\N
-503	p503	\N
-508	p508	\N
-587	p587	\N
-554	p554	\N
-585	p585	\N
-551	p551	\N
-563	p563	\N
-596	p596	\N
-549	p549	\N
-580	p580	\N
-599	p599	\N
-562	p562	\N
-886	p886	\N
-869	p869	\N
-856	p856	\N
-850	p850	\N
-806	p806	\N
-879	p879	\N
-899	p899	\N
-827	p827	\N
-896	p896	\N
-887	p887	\N
-858	p858	\N
-840	p840	\N
-808	p808	\N
-878	p878	\N
-880	p880	\N
-870	p870	\N
-871	p871	\N
-801	p801	\N
-804	p804	\N
-822	p822	\N
-888	p888	\N
-843	p843	\N
-845	p845	\N
-868	p868	\N
-836	p836	\N
-872	p872	\N
-803	p803	\N
-882	p882	\N
-807	p807	\N
-809	p809	\N
-893	p893	\N
-823	p823	\N
-825	p825	\N
-829	p829	\N
-830	p830	\N
-861	p861	\N
-839	p839	\N
-814	p814	\N
-837	p837	\N
-820	p820	\N
-831	p831	\N
-834	p834	\N
-849	p849	\N
-817	p817	\N
-884	p884	\N
-890	p890	\N
-819	p819	\N
-895	p895	\N
-898	p898	\N
-835	p835	\N
-860	p860	\N
-883	p883	\N
-832	p832	\N
-863	p863	\N
-874	p874	\N
-847	p847	\N
-853	p853	\N
-864	p864	\N
-818	p818	\N
-802	p802	\N
-833	p833	\N
-851	p851	\N
-855	p855	\N
-852	p852	\N
-815	p815	\N
-892	p892	\N
-838	p838	\N
-897	p897	\N
-824	p824	\N
-876	p876	\N
-867	p867	\N
-873	p873	\N
-826	p826	\N
-816	p816	\N
-805	p805	\N
-811	p811	\N
-813	p813	\N
-844	p844	\N
-900	p900	\N
-862	p862	\N
-846	p846	\N
-894	p894	\N
-848	p848	\N
-891	p891	\N
-865	p865	\N
-812	p812	\N
-857	p857	\N
-881	p881	\N
-877	p877	\N
-866	p866	\N
-885	p885	\N
-842	p842	\N
-810	p810	\N
-875	p875	\N
-889	p889	\N
-821	p821	\N
-828	p828	\N
-841	p841	\N
-854	p854	\N
-859	p859	\N
-151	p151	\N
-193	p193	\N
-119	p119	\N
-157	p157	\N
-144	p144	\N
-123	p123	\N
-134	p134	\N
-155	p155	\N
-140	p140	\N
-171	p171	\N
-182	p182	\N
-131	p131	\N
-180	p180	\N
-122	p122	\N
-118	p118	\N
-165	p165	\N
-109	p109	\N
-120	p120	\N
-137	p137	\N
-133	p133	\N
-110	p110	\N
-121	p121	\N
-146	p146	\N
-200	p200	\N
-106	p106	\N
-189	p189	\N
-167	p167	\N
-198	p198	\N
-117	p117	\N
-124	p124	\N
-127	p127	\N
-130	p130	\N
-154	p154	\N
-179	p179	\N
-188	p188	\N
-172	p172	\N
-164	p164	\N
-126	p126	\N
-159	p159	\N
-102	p102	\N
-135	p135	\N
-103	p103	\N
-177	p177	\N
-125	p125	\N
-156	p156	\N
-181	p181	\N
-184	p184	\N
-104	p104	\N
-113	p113	\N
-190	p190	\N
-174	p174	\N
-195	p195	\N
-107	p107	\N
-183	p183	\N
-153	p153	\N
-105	p105	\N
-116	p116	\N
-139	p139	\N
 176	p176	\N
-161	p161	\N
-115	p115	\N
-166	p166	\N
-149	p149	\N
-143	p143	\N
-152	p152	\N
-170	p170	\N
-175	p175	\N
-194	p194	\N
+153	p153	\N
+190	p190	\N
 138	p138	\N
-196	p196	\N
-141	p141	\N
-199	p199	\N
-129	p129	\N
-160	p160	\N
-187	p187	\N
-197	p197	\N
-114	p114	\N
-147	p147	\N
+125	p125	\N
+174	p174	\N
 185	p185	\N
-186	p186	\N
+151	p151	\N
+102	p102	\N
+184	p184	\N
+132	p132	\N
 173	p173	\N
+116	p116	\N
+165	p165	\N
+135	p135	\N
+117	p117	\N
+170	p170	\N
+106	p106	\N
+198	p198	\N
+144	p144	\N
+104	p104	\N
+192	p192	\N
+178	p178	\N
 150	p150	\N
 191	p191	\N
-128	p128	\N
-145	p145	\N
-163	p163	\N
-132	p132	\N
-158	p158	\N
-162	p162	\N
-142	p142	\N
-111	p111	\N
+129	p129	\N
+182	p182	\N
+181	p181	\N
 148	p148	\N
-178	p178	\N
 136	p136	\N
+155	p155	\N
+152	p152	\N
 108	p108	\N
+188	p188	\N
+167	p167	\N
+118	p118	\N
+166	p166	\N
+162	p162	\N
+105	p105	\N
+163	p163	\N
+149	p149	\N
+133	p133	\N
+130	p130	\N
+124	p124	\N
+126	p126	\N
+196	p196	\N
+183	p183	\N
+161	p161	\N
+157	p157	\N
+139	p139	\N
+172	p172	\N
+147	p147	\N
+140	p140	\N
+154	p154	\N
+109	p109	\N
+128	p128	\N
+187	p187	\N
+193	p193	\N
+160	p160	\N
+142	p142	\N
+164	p164	\N
+123	p123	\N
+159	p159	\N
+122	p122	\N
+121	p121	\N
+197	p197	\N
+171	p171	\N
+110	p110	\N
+156	p156	\N
+143	p143	\N
+134	p134	\N
+111	p111	\N
+199	p199	\N
+194	p194	\N
+175	p175	\N
+113	p113	\N
+120	p120	\N
+145	p145	\N
+186	p186	\N
+200	p200	\N
+158	p158	\N
+131	p131	\N
+127	p127	\N
 169	p169	\N
-112	p112	\N
+103	p103	\N
+146	p146	\N
 168	p168	\N
-192	p192	\N
+114	p114	\N
+115	p115	\N
+195	p195	\N
+137	p137	\N
+119	p119	\N
+180	p180	\N
+179	p179	\N
+141	p141	\N
+177	p177	\N
+189	p189	\N
+112	p112	\N
+107	p107	\N
+1	\\.	100
+535	p535	\N
+553	p553	\N
+575	p575	\N
+564	p564	\N
+505	p505	\N
+512	p512	\N
+554	p554	\N
+541	p541	\N
+561	p561	\N
+562	p562	\N
+525	p525	\N
+579	p579	\N
+543	p543	\N
+529	p529	\N
+581	p581	\N
+523	p523	\N
+538	p538	\N
+502	p502	\N
+582	p582	\N
+585	p585	\N
+547	p547	\N
+546	p546	\N
+544	p544	\N
+533	p533	\N
+593	p593	\N
+590	p590	\N
+557	p557	\N
+536	p536	\N
+580	p580	\N
+542	p542	\N
+501	p501	\N
+518	p518	\N
+578	p578	\N
+599	p599	\N
+568	p568	\N
+508	p508	\N
+563	p563	\N
+540	p540	\N
+534	p534	\N
+503	p503	\N
+526	p526	\N
+577	p577	\N
+598	p598	\N
+510	p510	\N
+519	p519	\N
+592	p592	\N
+596	p596	\N
+587	p587	\N
+556	p556	\N
+521	p521	\N
+515	p515	\N
+589	p589	\N
+574	p574	\N
+504	p504	\N
+565	p565	\N
+520	p520	\N
+594	p594	\N
+597	p597	\N
+548	p548	\N
+537	p537	\N
+531	p531	\N
+530	p530	\N
+570	p570	\N
+595	p595	\N
+511	p511	\N
+559	p559	\N
+509	p509	\N
+600	p600	\N
+524	p524	\N
+507	p507	\N
+506	p506	\N
+566	p566	\N
+549	p549	\N
+514	p514	\N
+569	p569	\N
+527	p527	\N
+584	p584	\N
+571	p571	\N
+539	p539	\N
+517	p517	\N
+516	p516	\N
+552	p552	\N
+572	p572	\N
+532	p532	\N
+558	p558	\N
+550	p550	\N
+586	p586	\N
+513	p513	\N
+551	p551	\N
+583	p583	\N
+555	p555	\N
+528	p528	\N
+573	p573	\N
+588	p588	\N
+560	p560	\N
+567	p567	\N
+576	p576	\N
+591	p591	\N
+545	p545	\N
+522	p522	\N
+887	p887	\N
+826	p826	\N
+897	p897	\N
+898	p898	\N
+858	p858	\N
+836	p836	\N
+837	p837	\N
+861	p861	\N
+834	p834	\N
+830	p830	\N
+853	p853	\N
+875	p875	\N
+849	p849	\N
+862	p862	\N
+855	p855	\N
+859	p859	\N
+889	p889	\N
+888	p888	\N
+886	p886	\N
+842	p842	\N
+802	p802	\N
+803	p803	\N
+809	p809	\N
+832	p832	\N
+871	p871	\N
+854	p854	\N
+847	p847	\N
+819	p819	\N
+872	p872	\N
+840	p840	\N
+896	p896	\N
+816	p816	\N
+900	p900	\N
+894	p894	\N
+890	p890	\N
+868	p868	\N
+891	p891	\N
+839	p839	\N
+863	p863	\N
+806	p806	\N
+880	p880	\N
+864	p864	\N
+899	p899	\N
+829	p829	\N
+812	p812	\N
+879	p879	\N
+841	p841	\N
+857	p857	\N
+851	p851	\N
+845	p845	\N
+882	p882	\N
+885	p885	\N
+867	p867	\N
+822	p822	\N
+818	p818	\N
+807	p807	\N
+884	p884	\N
+813	p813	\N
+895	p895	\N
+870	p870	\N
+824	p824	\N
+846	p846	\N
+828	p828	\N
+866	p866	\N
+811	p811	\N
+850	p850	\N
+848	p848	\N
+801	p801	\N
+856	p856	\N
+835	p835	\N
+810	p810	\N
+874	p874	\N
+892	p892	\N
+821	p821	\N
+876	p876	\N
+865	p865	\N
+817	p817	\N
+833	p833	\N
+873	p873	\N
+804	p804	\N
+838	p838	\N
+860	p860	\N
+820	p820	\N
+823	p823	\N
+844	p844	\N
+878	p878	\N
+805	p805	\N
+893	p893	\N
+881	p881	\N
+877	p877	\N
+852	p852	\N
+815	p815	\N
+869	p869	\N
+825	p825	\N
+814	p814	\N
+843	p843	\N
+808	p808	\N
+883	p883	\N
+827	p827	\N
+831	p831	\N
+301	p301	\N
+372	p372	\N
+355	p355	\N
+390	p390	\N
+331	p331	\N
+370	p370	\N
+318	p318	\N
+393	p393	\N
+350	p350	\N
+396	p396	\N
+386	p386	\N
+365	p365	\N
+363	p363	\N
+315	p315	\N
+327	p327	\N
+330	p330	\N
+383	p383	\N
+375	p375	\N
+347	p347	\N
+362	p362	\N
+354	p354	\N
+325	p325	\N
+374	p374	\N
+302	p302	\N
+338	p338	\N
+311	p311	\N
+314	p314	\N
+312	p312	\N
+308	p308	\N
+364	p364	\N
+329	p329	\N
+319	p319	\N
+307	p307	\N
+387	p387	\N
+367	p367	\N
+306	p306	\N
+323	p323	\N
+377	p377	\N
+357	p357	\N
+360	p360	\N
+373	p373	\N
+395	p395	\N
+313	p313	\N
+359	p359	\N
+305	p305	\N
+345	p345	\N
+394	p394	\N
+351	p351	\N
+349	p349	\N
+328	p328	\N
+391	p391	\N
+332	p332	\N
+304	p304	\N
+309	p309	\N
+358	p358	\N
+378	p378	\N
+344	p344	\N
+342	p342	\N
+334	p334	\N
+376	p376	\N
+388	p388	\N
+320	p320	\N
+400	p400	\N
+366	p366	\N
+399	p399	\N
+379	p379	\N
+369	p369	\N
+324	p324	\N
+382	p382	\N
+340	p340	\N
+336	p336	\N
+321	p321	\N
+339	p339	\N
+335	p335	\N
+326	p326	\N
+380	p380	\N
+316	p316	\N
+398	p398	\N
+337	p337	\N
+353	p353	\N
+361	p361	\N
+346	p346	\N
+384	p384	\N
+310	p310	\N
+392	p392	\N
+341	p341	\N
+385	p385	\N
+317	p317	\N
+381	p381	\N
+303	p303	\N
+356	p356	\N
+352	p352	\N
+389	p389	\N
+333	p333	\N
+322	p322	\N
+397	p397	\N
+371	p371	\N
+368	p368	\N
+348	p348	\N
+343	p343	\N
+902	p902	\N
+924	p924	\N
+963	p963	\N
+957	p957	\N
+908	p908	\N
+954	p954	\N
+959	p959	\N
+938	p938	\N
+951	p951	\N
+912	p912	\N
+915	p915	\N
+944	p944	\N
+917	p917	\N
+916	p916	\N
+974	p974	\N
+956	p956	\N
+979	p979	\N
+914	p914	\N
+997	p997	\N
+929	p929	\N
+936	p936	\N
+921	p921	\N
+1000	p1000	\N
+976	p976	\N
+933	p933	\N
+985	p985	\N
+992	p992	\N
+984	p984	\N
+952	p952	\N
+923	p923	\N
+920	p920	\N
+950	p950	\N
+994	p994	\N
+990	p990	\N
+967	p967	\N
+941	p941	\N
+940	p940	\N
+931	p931	\N
+911	p911	\N
+945	p945	\N
+913	p913	\N
+982	p982	\N
+934	p934	\N
+907	p907	\N
+919	p919	\N
+975	p975	\N
+991	p991	\N
+970	p970	\N
+943	p943	\N
+968	p968	\N
+966	p966	\N
+901	p901	\N
+958	p958	\N
+942	p942	\N
+904	p904	\N
+987	p987	\N
+980	p980	\N
+995	p995	\N
+998	p998	\N
+977	p977	\N
+973	p973	\N
+955	p955	\N
+910	p910	\N
+946	p946	\N
+988	p988	\N
+949	p949	\N
+903	p903	\N
+939	p939	\N
+978	p978	\N
+999	p999	\N
+981	p981	\N
+932	p932	\N
+961	p961	\N
+909	p909	\N
+922	p922	\N
+930	p930	\N
+989	p989	\N
+925	p925	\N
+918	p918	\N
+906	p906	\N
+983	p983	\N
+965	p965	\N
+947	p947	\N
+972	p972	\N
+928	p928	\N
+960	p960	\N
+953	p953	\N
+935	p935	\N
+926	p926	\N
+996	p996	\N
+993	p993	\N
+962	p962	\N
+927	p927	\N
+986	p986	\N
+969	p969	\N
+964	p964	\N
+937	p937	\N
+905	p905	\N
+971	p971	\N
+948	p948	\N
+758	p758	\N
+769	p769	\N
+707	p707	\N
+751	p751	\N
+734	p734	\N
+757	p757	\N
+746	p746	\N
+728	p728	\N
+747	p747	\N
+779	p779	\N
+776	p776	\N
+759	p759	\N
+720	p720	\N
+706	p706	\N
+763	p763	\N
+771	p771	\N
+768	p768	\N
+778	p778	\N
+719	p719	\N
+711	p711	\N
+785	p785	\N
+741	p741	\N
+730	p730	\N
+775	p775	\N
+760	p760	\N
+738	p738	\N
+792	p792	\N
+717	p717	\N
+773	p773	\N
+737	p737	\N
+795	p795	\N
+764	p764	\N
+733	p733	\N
+701	p701	\N
+708	p708	\N
+745	p745	\N
+716	p716	\N
+712	p712	\N
+766	p766	\N
+796	p796	\N
+780	p780	\N
+715	p715	\N
+750	p750	\N
+743	p743	\N
+799	p799	\N
+788	p788	\N
+782	p782	\N
+767	p767	\N
+753	p753	\N
+797	p797	\N
+713	p713	\N
+709	p709	\N
+783	p783	\N
+742	p742	\N
+721	p721	\N
+791	p791	\N
+702	p702	\N
+798	p798	\N
+786	p786	\N
+723	p723	\N
+789	p789	\N
+740	p740	\N
+704	p704	\N
+761	p761	\N
+739	p739	\N
+705	p705	\N
+794	p794	\N
+752	p752	\N
+718	p718	\N
+703	p703	\N
+754	p754	\N
+725	p725	\N
+770	p770	\N
+732	p732	\N
+765	p765	\N
+714	p714	\N
+800	p800	\N
+749	p749	\N
+774	p774	\N
+784	p784	\N
+781	p781	\N
+790	p790	\N
+756	p756	\N
+748	p748	\N
+729	p729	\N
+762	p762	\N
+736	p736	\N
+731	p731	\N
+793	p793	\N
+724	p724	\N
+722	p722	\N
+735	p735	\N
+755	p755	\N
+744	p744	\N
+727	p727	\N
+777	p777	\N
+772	p772	\N
+787	p787	\N
+710	p710	\N
+726	p726	\N
 \.
 
-COPY "S'""chema"."table" FROM stdin;
+COPY "public"."partition_child" FROM stdin;
+10
 \.
 
-COPY "S'""chema"."table_details" FROM stdin;
+COPY "public"."test_ordered" FROM stdin;
+2	a
+1	b
 \.
 
 
+ALTER TABLE "S'""chema"."table" ENABLE TRIGGER ALL;
+ALTER TABLE "S'""chema"."table_details" ENABLE TRIGGER ALL;
+ALTER TABLE "long_schema_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"."child" ENABLE TRIGGER ALL;
+ALTER TABLE "long_schema_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"."long_name_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1" ENABLE TRIGGER ALL;
 ALTER TABLE "public"."child1" ENABLE TRIGGER ALL;
 ALTER TABLE "public"."child10" ENABLE TRIGGER ALL;
 ALTER TABLE "public"."child2" ENABLE TRIGGER ALL;
@@ -2576,6 +2817,6 @@ ALTER TABLE "public"."child7" ENABLE TRIGGER ALL;
 ALTER TABLE "public"."child8" ENABLE TRIGGER ALL;
 ALTER TABLE "public"."child9" ENABLE TRIGGER ALL;
 ALTER TABLE "public"."parent" ENABLE TRIGGER ALL;
-ALTER TABLE "S'""chema"."table" ENABLE TRIGGER ALL;
-ALTER TABLE "S'""chema"."table_details" ENABLE TRIGGER ALL;
+ALTER TABLE "public"."partition_child" ENABLE TRIGGER ALL;
+ALTER TABLE "public"."test_ordered" ENABLE TRIGGER ALL;
 
