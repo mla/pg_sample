@@ -199,18 +199,16 @@ $dbh->do(qq{
   # names when necessary.
 
   my $maxlen = 63;
-  eval {
-    my $config = $dbh->selectrow_hashref(q{
-      SELECT current_setting('max_identifier_length') AS namedatalen
-    });
-    $config //= {};
-    $maxlen = $config->{namedatalen} // $maxlen;
-  };
+  $maxlen = eval {
+    $dbh->selectrow_array(
+      "SELECT current_setting('max_identifier_length')"
+    );
+  } // $maxlen;
   if ($@) {
     diag("Unable to determine max identifer length: $@");
     diag("Defaulting to max identifier length of '$maxlen'");
   } else {
-    diag("Max identifier length: $maxlen");
+    diag("Max identifier length: $maxlen") if $opt{verbose};
   }
 
   my $long_schema = 'long_schema_' . ('X' x $maxlen);

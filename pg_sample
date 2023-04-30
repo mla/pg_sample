@@ -325,6 +325,27 @@ sub pg_version {
   return version->declare($1);
 }
 
+{
+  my $maxlen;
+
+  sub max_identifier_length () {
+    $maxlen //= do {
+      my $len = eval {
+        connect_db()->selectrow_array(
+          "SELECT current_setting('max_identifier_length')"
+        );
+      };
+      if ($@) {
+        warn "Unable to determine max identifier length: $@\n";
+        warn "Defaulting to max identifier length $MAX_IDENTIFIER_LENGTH\n";
+        $len= $MAX_IDENTIFIER_LENGTH;
+      }
+      $len;
+    };
+  }
+}
+
+
 # Return a copy of a hash with all keys lowercased.
 sub lower_keys($) {
   my $hash = shift or return;
@@ -385,7 +406,7 @@ sub quote_constant (@) {
       do {
         # make sure sample table names are unique and not too long
         $name = sprintf '%04x__%s', ++$seq, $key;
-        $name = substr $name, 0, $MAX_IDENTIFIER_LENGTH;
+        $name = substr $name, 0, max_identifier_length;
       } until !exists $cache{ $name };
       $name;
     };
