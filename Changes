@@ -1,4 +1,4 @@
-1.16
+1.16 May 6, 2023
   - Handle schema + table names greater than max identifier length
     (thanks to Chad Hoyt @chadhoyt)
 
