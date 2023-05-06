@@ -191,7 +191,3 @@ createdb(1), pg\_dump(1), psql(1)
 # AUTHOR
 
 Maurice Aubrey <maurice.aubrey@gmail.com>
-
-
-[![Build Status](https://travis-ci.com/mla/pg_sample.png)]
-(https://travis-ci.com/mla/pg_sample)
