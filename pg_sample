@@ -157,7 +157,10 @@ variable, if set; otherwise, the default port is used.
 
 =item B<--username=>I<username>
 
-User name to connect as.
+User name to connect as. 
+
+=item B<--events_table=>I<eventstavlename>
+Will sampling related events which has no forign keys, this will help in event sourcing.
 
 =item B<-W> I<password>
 
@@ -474,9 +477,11 @@ sub notice (@) {
 	schema        => undef,
 	sample_schema => '_pg_sample',
 	verbose       => 0,
+	events_table => undef,
+	events_objid => 'objectid',
 );
 
-GetOptions(\%opt,"data-only|data_only|a","db_name|db-name=s","db_user|db-user|db_username|db-username|username|U=s","db_pass|db-pass|db_password|db-password|password|W=s","db_host|db-host|h|host=s","db_port|db-port|p|port=i","encoding|E=s","file|f=s","force","help|?|usage","keep","limit=s@","no-privileges|no-acl|x","ordered","ordered_desc|ordered-desc","ordered_asc|ordered-asc","random","sample_schema=s","schema=s","trace","verbose|v","version|V",);
+GetOptions(\%opt,"data-only|data_only|a","db_name|db-name=s","db_user|db-user|db_username|db-username|username|U=s","db_pass|db-pass|db_password|db-password|password|W=s","db_host|db-host|h|host=s","db_port|db-port|p|port=i","encoding|E=s","file|f=s","force","help|?|usage","keep","limit=s@","no-privileges|no-acl|x","ordered","ordered_desc|ordered-desc","ordered_asc|ordered-asc","random","sample_schema=s","schema=s","trace","verbose|v","version|V","events_table|et=s","events_objid=s");
 
 if ($opt{version}) {
 	print "$VERSION\n";
@@ -759,6 +764,36 @@ while ($num_rows) {
 		notice "$count rows\n";
 
 		$num_rows += $count;
+	}
+}
+
+if($opt{events_table}){
+	my $sample_events = $sample_tables{qq("$opt{schema}"."$opt{events_table}")};
+
+	foreach my $table (@tables) {
+		my $sample_table = sample_table($table);
+
+		my $query = qq{
+  INSERT INTO $sample_events
+        SELECT DISTINCT t1.*
+          FROM "public"."events" t1
+              JOIN $sample_table f1 ON t1.$opt{events_objid}=f1.id
+  };
+
+		if(index("$table", 'events') !=0){
+			eval {
+				my $count = $dbh->do($query) || 0;
+				warn "$count rows\n";
+			};
+			if ($@) {
+
+				# handle the exception
+				# warn "Caught exception: $@\n";
+			}
+
+			# warn "Sample $sample_table\n $query\n";
+
+		}
 	}
 }
 
