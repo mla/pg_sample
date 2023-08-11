@@ -479,9 +479,10 @@ sub notice (@) {
 	verbose       => 0,
 	events_table => undef,
 	events_objid => 'objectid',
+	where_clause_csv=> undef,
 );
 
-GetOptions(\%opt,"data-only|data_only|a","db_name|db-name=s","db_user|db-user|db_username|db-username|username|U=s","db_pass|db-pass|db_password|db-password|password|W=s","db_host|db-host|h|host=s","db_port|db-port|p|port=i","encoding|E=s","file|f=s","force","help|?|usage","keep","limit=s@","no-privileges|no-acl|x","ordered","ordered_desc|ordered-desc","ordered_asc|ordered-asc","random","sample_schema=s","schema=s","trace","verbose|v","version|V","events_table|et=s","events_objid=s");
+GetOptions(\%opt,"data-only|data_only|a","db_name|db-name=s","db_user|db-user|db_username|db-username|username|U=s","db_pass|db-pass|db_password|db-password|password|W=s","db_host|db-host|h|host=s","db_port|db-port|p|port=i","encoding|E=s","file|f=s","force","help|?|usage","keep","limit=s@","no-privileges|no-acl|x","ordered","ordered_desc|ordered-desc","ordered_asc|ordered-asc","random","sample_schema=s","schema=s","trace","verbose|v","version|V","events_table|et=s","events_objid=s","where_clause_csv=s");
 
 if ($opt{version}) {
 	print "$VERSION\n";
@@ -503,6 +504,18 @@ if ($opt{random} && $opt{ordered}) {
 	print("Error: --random and --ordered are mutually exclusive");
 	exit 1;
 }
+my %where_map;
+if($opt{where_clause_csv}){
+	require "./read_where_clause_csv.pl";
+	%where_map=get_where_claus_csv("$opt{where_clause_csv}",$opt{schema});
+
+
+	notice "where_clause_csv: $opt{where_clause_csv}\n" if $opt{verbose};
+	foreach my $key (keys %where_map) {
+		notice "key:  $key  value: $where_map{$key} \n" if $opt{verbose};
+	}
+}
+
 
 @ARGV or die "\nUsage: $0 [ option... ] [ dbname ]\n\n\t" ."$0 --help for detailed options\n";
 
@@ -650,6 +663,10 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
 
 		last;
 	}
+	if(exists($where_map{$table})){
+		notice "where: " . $where_map{$table} . "\n" if $opt{verbose};
+		$where=$where_map{$table};
+	}
 
 	# warn "\n[LIMIT] $table WHERE $where $limit\n";
 
@@ -665,9 +682,7 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
 			notice "No candidate key found for '$table'; ignoring --ordered";
 		}
 	}
-
-	$dbh->do(
-		qq{
+	my $q=qq{
     CREATE $unlogged TABLE $sample_table AS
             SELECT *
          FROM ONLY $table
@@ -675,8 +690,10 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
              WHERE $where
             $order
             $limit
-  }
-	);
+  };
+	notice "query $q\n" if $opt{verbose};
+
+	$dbh->do($q);
 
 	if ($opt{verbose}) {
 		my ($num_rows) =$dbh->selectrow_array(qq{ SELECT count(*) FROM $sample_table });
@@ -761,34 +778,35 @@ while ($num_rows) {
 		notice"Copying $target_table ($target_cols) rows referenced from " ."$sample_fk_table ($fk_cols)... ";
 
 		my $count = $dbh->do($query) || 0;
-		notice "$count rows\n";
+		notice "$count rows from $target_table\n";
 
 		$num_rows += $count;
 	}
 }
 
 if($opt{events_table}){
-	my $sample_events = $sample_tables{qq("$opt{schema}"."$opt{events_table}")};
+	my $events_table = qq("$opt{schema}"."$opt{events_table}");
+	my $sample_events = $sample_tables{$events_table};
 
 	foreach my $table (@tables) {
 		my $sample_table = sample_table($table);
 
 		my $query = qq{
-  INSERT INTO $sample_events
-        SELECT DISTINCT t1.*
-          FROM "public"."events" t1
-              JOIN $sample_table f1 ON t1.$opt{events_objid}=f1.id
-  };
-
+				INSERT INTO $sample_events
+							SELECT DISTINCT t1.*
+								FROM $events_table t1
+										JOIN $sample_table f1 ON t1.$opt{events_objid}=f1.id
+				};
 		if(index("$table", 'events') !=0){
 			eval {
 				my $count = $dbh->do($query) || 0;
-				warn "$count rows\n";
+
+				notice "$count events sampled from $events_table table using query:\n $query \n" if $opt{verbose};
 			};
 			if ($@) {
 
 				# handle the exception
-				# warn "Caught exception: $@\n";
+				warn "Caught exception: $@\n" if $opt{verbose};
 			}
 
 			# warn "Sample $sample_table\n $query\n";
