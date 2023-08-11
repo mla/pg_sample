@@ -204,185 +204,182 @@ use DBD::Pg 2.0.0;
 our $MAX_IDENTIFIER_LENGTH = 63;
 
 $SIG{TERM} = $SIG{INT} = $SIG{QUIT} = $SIG{HUP} = sub {
-  my $signal = shift;
-  die "Received signal '$signal'; cleaning up and terminating.\n";
+	my $signal = shift;
+	die "Received signal '$signal'; cleaning up and terminating.\n";
 };
 
+
 BEGIN {
-  # Encapsulate a fully-qualified Postgresql table name
-  package Table;
-  
-  use strict;
-  use Carp;
-  use overload '""' => 'quoted'; # interpolation results in quoted version
- 
-  *dbh = \&main::connect_db;
-  
-  sub new {
-    my $class = shift;
-  
-    $class = ref($class) || $class;
-    return bless {
-      schema => shift,
-      table => shift,
-    };
-  }
-  
-  sub quoted {
-    my $self = shift;
-  
-    return $self->dbh->quote_identifier(
-      undef,
-      $self->{schema},
-      $self->{table},
-    );
-  }
+	# Encapsulate a fully-qualified Postgresql table name
+	package Table;
 
-  # only used for command-line matching to keep it simple
-  sub unquoted {
-    my $self = shift;
+	use strict;
+	use Carp;
+	use overload '""' => 'quoted'; # interpolation results in quoted version
 
-    return join '.', $self->{schema}, $self->{table};
-  }
-  
-  sub schema {
-    my $self = shift;
-  
-    $self->{schema} = shift if @_;
-    return $self->{schema};
-  }
-  
-  sub table {
-    my $self = shift;
-  
-    $self->{table} = shift if @_;
-    return $self->{table};
-  }
-  
-  sub DESTROY {}
-  
-  sub AUTOLOAD {
-    my $self = shift;
-  
-    our $AUTOLOAD;
-    $AUTOLOAD =~ s/.*:://g;
-  
-    if ($AUTOLOAD =~ /^quoted_(.+)$/) {
-      my $method = $1;
-      return $self->dbh->quote_identifier($self->$method);
-    }
-  
-    croak "Can't locate object method \"$AUTOLOAD\" via package " .
-          __PACKAGE__;
-  }
+	*dbh = \&main::connect_db;
+
+
+	sub new {
+		my $class = shift;
+
+		$class = ref($class) || $class;
+		return bless {
+			schema => shift,
+			table => shift,
+		};
+	}
+
+
+	sub quoted {
+		my $self = shift;
+
+		return $self->dbh->quote_identifier(undef,$self->{schema},$self->{table},);
+	}
+
+	# only used for command-line matching to keep it simple
+	sub unquoted {
+		my $self = shift;
+
+		return join '.', $self->{schema}, $self->{table};
+	}
+
+
+	sub schema {
+		my $self = shift;
+
+		$self->{schema} = shift if @_;
+		return $self->{schema};
+	}
+
+
+	sub table {
+		my $self = shift;
+
+		$self->{table} = shift if @_;
+		return $self->{table};
+	}
+
+	sub DESTROY {}
+
+
+	sub AUTOLOAD {
+		my $self = shift;
+
+		our $AUTOLOAD;
+		$AUTOLOAD =~ s/.*:://g;
+
+		if ($AUTOLOAD =~ /^quoted_(.+)$/) {
+			my $method = $1;
+			return $self->dbh->quote_identifier($self->$method);
+		}
+
+		croak "Can't locate object method \"$AUTOLOAD\" via package " .__PACKAGE__;
+	}
 }
 
+
 sub list {
-  map { ref $_ eq 'ARRAY' ? @$_ : $_ } @_
+	map { ref $_ eq 'ARRAY' ? @$_ : $_ } @_;
 }
 
 my %opt; # closure; all functions have access to options
 
 {
-  my $dbh; # cached db handle
+	my $dbh; # cached db handle
 
-  sub connect_db {
-    return $dbh if $dbh;
 
-    my $dsn = join ';',
-      "dbi:Pg:dbname=$opt{db_name}",
-      $opt{db_host} ? "host=$opt{db_host}" : (),
-      $opt{db_port} ? "port=$opt{db_port}" : (),
-    ;
-  
-    $dbh = DBI->connect(
-      $dsn,
-      $opt{db_user},
-      $opt{db_pass},
-      {
-        RaiseError       => 1,
-        AutoCommit       => 1,
-        # FetchHashKeyName => 'NAME_lc',
-        PrintError       => 0,
-        HandleError      => sub { confess( shift ) },
-      },
-    ) or croak "db connection failed!";
-  
-    $dbh->trace(1) if defined $opt{trace};
-  
-    return $dbh;
-  }
+	sub connect_db {
+		return $dbh if $dbh;
+
+		my $dsn = join ';',"dbi:Pg:dbname=$opt{db_name}",$opt{db_host} ? "host=$opt{db_host}" : (),$opt{db_port} ? "port=$opt{db_port}" : (),;
+
+		$dbh = DBI->connect(
+			$dsn,
+			$opt{db_user},
+			$opt{db_pass},
+			{
+				RaiseError       => 1,
+				AutoCommit       => 1,
+
+				# FetchHashKeyName => 'NAME_lc',
+				PrintError       => 0,
+				HandleError      => sub { confess(shift) },
+			},
+		) or croak "db connection failed!";
+
+		$dbh->trace(1) if defined $opt{trace};
+
+		return $dbh;
+	}
 }
 
 # Retrieve PostgreSQL server version.
 # Expect something like:
 #   PostgreSQL 8.4.8 on x86_64-pc-linux-gnu, compiled by GCC gcc-4.6.real (Ubuntu/Linaro 4.6.0-7ubuntu1) 4.6.1, 64-bit
 sub pg_version {
-  my ($ver) = connect_db()->selectrow_array("SELECT version()")
-    or croak "request to select postgresql server version failed";
-  $ver =~ /([\d.]+)/ or croak "unable to parse postgresql version from '$ver'";
+	my ($ver) = connect_db()->selectrow_array("SELECT version()")
+	  or croak "request to select postgresql server version failed";
+	$ver =~ /([\d.]+)/ or croak "unable to parse postgresql version from '$ver'";
 
-  return version->declare($1);
+	return version->declare($1);
 }
 
 {
-  my $maxlen;
+	my $maxlen;
 
-  sub max_identifier_length () {
-    $maxlen //= do {
-      my $len = eval {
-        connect_db()->selectrow_array(
-          "SELECT current_setting('max_identifier_length')"
-        );
-      };
-      if ($@) {
-        warn "Unable to determine max identifier length: $@\n";
-        warn "Defaulting to max identifier length $MAX_IDENTIFIER_LENGTH\n";
-        $len= $MAX_IDENTIFIER_LENGTH;
-      }
-      $len;
-    };
-  }
+
+	sub max_identifier_length () {
+		$maxlen //= do {
+			my $len = eval {connect_db()->selectrow_array("SELECT current_setting('max_identifier_length')");};
+			if ($@) {
+				warn "Unable to determine max identifier length: $@\n";
+				warn "Defaulting to max identifier length $MAX_IDENTIFIER_LENGTH\n";
+				$len= $MAX_IDENTIFIER_LENGTH;
+			}
+			$len;
+		};
+	}
 }
 
 
 # Return a copy of a hash with all keys lowercased.
 sub lower_keys($) {
-  my $hash = shift or return;
+	my $hash = shift or return;
 
-  ref $hash eq 'HASH' or croak "not a hash reference";
+	ref $hash eq 'HASH' or croak "not a hash reference";
 
-  my %lower = map { lc($_) => $hash->{$_} } keys %$hash;
-  return \%lower;
+	my %lower = map { lc($_) => $hash->{$_} } keys %$hash;
+	return \%lower;
 }
 
 # See "Identifiers and Key Words" section 4.1.1
 # http://www.postgresql.org/docs/8.2/static/sql-syntax-lexical.html
 sub unquote_identifier (@) {
-  my @unquoted;
-  while (@_) {
-    my $val = shift @_;
-    if ($val =~ /^\s*"(.*)"\s*$/) { # looks quoted?
-      $val = $1;
-      $val =~ s/(["\\])\1/$1/g; # undo doubled chars
-    }
-    push @unquoted, $val;
-  }
+	my @unquoted;
+	while (@_) {
+		my $val = shift @_;
+		if ($val =~ /^\s*"(.*)"\s*$/) { # looks quoted?
+			$val = $1;
+			$val =~ s/(["\\])\1/$1/g; # undo doubled chars
+		}
+		push @unquoted, $val;
+	}
 
-  return wantarray ? @unquoted : $unquoted[0];
+	return wantarray ? @unquoted : $unquoted[0];
 }
 
 # See "String Constants" section 4.1.2.1
 # http://www.postgresql.org/docs/8.2/static/sql-syntax-lexical.html
 sub quote_constant (@) {
-  my @quoted;
-  while (@_) {
-    my $val = shift @_;
-    $val =~ s/'/''/g;
-    push @quoted, "'$val'";
-  }
+	my @quoted;
+	while (@_) {
+		my $val = shift @_;
+		$val =~ s/'/''/g;
+		push @quoted, "'$val'";
+	}
 
-  return wantarray ? @quoted: $quoted[0];
+	return wantarray ? @quoted: $quoted[0];
 }
 
 # Encode the actual schema and table name into a new table
@@ -393,35 +390,36 @@ sub quote_constant (@) {
 #
 # @param Table instance
 {
-  my $seq = 0;
-  my %cache;
+	my $seq = 0;
+	my %cache;
 
-  sub sample_table ($) {
-    my $table = shift;
-  
-    my $key = join '_', $table->schema || 'public', $table->table;
 
-    my $sample_table = $cache{ $key } //= do {
-      my $name;
-      do {
-        # make sure sample table names are unique and not too long
-        $name = sprintf '%04x__%s', ++$seq, $key;
-        $name = substr $name, 0, max_identifier_length;
-      } until !exists $cache{ $name };
-      $name;
-    };
+	sub sample_table ($) {
+		my $table = shift;
 
-    return Table->new($opt{sample_schema}, $sample_table);
-  }
+		my $key = join '_', $table->schema || 'public', $table->table;
+
+		my $sample_table = $cache{$key} //= do {
+			my $name;
+			do {
+				# make sure sample table names are unique and not too long
+				$name = sprintf '%04x__%s', ++$seq, $key;
+				$name = substr $name, 0, max_identifier_length;
+			} until !exists $cache{$name};
+			$name;
+		};
+
+		return Table->new($opt{sample_schema}, $sample_table);
+	}
 }
 
 
 # Find the first candidate key for a given table (preferring primary
 # key if available)
 sub find_candidate_key {
-  my $table = shift;
+	my $table = shift;
 
-  my $query = qq{
+	my $query = qq{
       SELECT n.nspname AS table_schema
              ,c2.relname as table_name
              ,c.relname AS index_name
@@ -446,85 +444,62 @@ sub find_candidate_key {
              ,index_name
              ,column_name
   };
-  my $dbh = connect_db;
-  my $sth = $dbh->prepare($query);
-  $sth->execute($table->schema, $table->table);
+	my $dbh = connect_db;
+	my $sth = $dbh->prepare($query);
+	$sth->execute($table->schema, $table->table);
 
-  my $last_index_name;
-  my @cols;
-  while (my $row = $sth->fetchrow_hashref) {
-    last if $row->{index_name} ne ($last_index_name //= $row->{index_name});
-    push @cols, $row->{column_name};
-  }
+	my $last_index_name;
+	my @cols;
+	while (my $row = $sth->fetchrow_hashref) {
+		last if $row->{index_name} ne ($last_index_name //= $row->{index_name});
+		push @cols, $row->{column_name};
+	}
 
-  return wantarray ? @cols : \@cols;
+	return wantarray ? @cols : \@cols;
 }
 
 
 sub notice (@) {
-  return unless $opt{verbose};
-  print STDERR join "", @_;
+	return unless $opt{verbose};
+	print STDERR join "", @_;
 }
 
 
 %opt = (
-  db_host       => '',
-  db_port       => '',
-  keep          => 0,
-  ordered       => 0,
-  random        => 0,
-  schema        => undef,
-  sample_schema => '_pg_sample',
-  verbose       => 0,
+	db_host       => '',
+	db_port       => '',
+	keep          => 0,
+	ordered       => 0,
+	random        => 0,
+	schema        => undef,
+	sample_schema => '_pg_sample',
+	verbose       => 0,
 );
 
-GetOptions(\%opt,
-  "data-only|data_only|a",
-  "db_name|db-name=s",
-  "db_user|db-user|db_username|db-username|username|U=s",
-  "db_pass|db-pass|db_password|db-password|password|W=s",
-  "db_host|db-host|h|host=s",
-  "db_port|db-port|p|port=i",
-  "encoding|E=s",
-  "file|f=s",
-  "force",
-  "help|?|usage",
-  "keep",
-  "limit=s@",
-  "no-privileges|no-acl|x",
-  "ordered",
-  "ordered_desc|ordered-desc",
-  "ordered_asc|ordered-asc",
-  "random",
-  "sample_schema=s",
-  "schema=s",
-  "trace",
-  "verbose|v",
-  "version|V",
-);
+GetOptions(\%opt,"data-only|data_only|a","db_name|db-name=s","db_user|db-user|db_username|db-username|username|U=s","db_pass|db-pass|db_password|db-password|password|W=s","db_host|db-host|h|host=s","db_port|db-port|p|port=i","encoding|E=s","file|f=s","force","help|?|usage","keep","limit=s@","no-privileges|no-acl|x","ordered","ordered_desc|ordered-desc","ordered_asc|ordered-asc","random","sample_schema=s","schema=s","trace","verbose|v","version|V",);
 
 if ($opt{version}) {
-  print "$VERSION\n";
-  exit 0;
+	print "$VERSION\n";
+	exit 0;
 }
 
 if ($opt{help}) {
-  require Pod::Usage;
-  Pod::Usage::pod2usage(-verbose => 2);
-  exit 0;
+	require Pod::Usage;
+	Pod::Usage::pod2usage(-verbose => 2);
+	exit 0;
 }
 
-$opt{ordered} = $opt{ordered_desc} ? 'DESC'
-              : $opt{ordered_asc}  ? 'ASC'
-              : $opt{ordered}      ? 'DESC'
-              : undef;
+$opt{ordered} =
+	$opt{ordered_desc} ? 'DESC'
+  : $opt{ordered_asc}  ? 'ASC'
+  : $opt{ordered}      ? 'DESC'
+  : undef;
 if ($opt{random} && $opt{ordered}) {
-  print("Error: --random and --ordered are mutually exclusive");
-  exit 1;
+	print("Error: --random and --ordered are mutually exclusive");
+	exit 1;
 }
 
-@ARGV or die "\nUsage: $0 [ option... ] [ dbname ]\n\n\t" .
-             "$0 --help for detailed options\n";
+@ARGV or die "\nUsage: $0 [ option... ] [ dbname ]\n\n\t" ."$0 --help for detailed options\n";
 
 push @{ $opt{limit} }, ".* = 100 "; # append default limit rule
 
@@ -539,27 +514,28 @@ my $dbh = connect_db(%opt) or croak "unable to connect to database";
 my $pg_version = pg_version;
 
 if ($opt{sample_schema} eq 'public') {
-  die "Error: refusing to use 'public' schema for sampling.\n";
+	die "Error: refusing to use 'public' schema for sampling.\n";
 }
 
-my ($schema_oid) = $dbh->selectrow_array(qq{
+my ($schema_oid) = $dbh->selectrow_array(
+	qq{
   SELECT oid 
     FROM pg_catalog.pg_namespace
    WHERE nspname = ?
-}, undef, $opt{sample_schema});
+}, undef, $opt{sample_schema}
+);
 if ($schema_oid && !$opt{force}) {
-  die "Error: schema '$opt{sample_schema}' already exists. " .
-      "Use --force option to overwrite.\n";
+	die "Error: schema '$opt{sample_schema}' already exists. " ."Use --force option to overwrite.\n";
 }
 
 $dbh->do(qq{ SET client_min_messages = warning }); # suppress notice messages
 if ($opt{force}) {
-  notice "Dropping sample schema $opt{sample_schema}\n";
-  $dbh->do(qq{ DROP SCHEMA IF EXISTS $opt{sample_schema} CASCADE });
+	notice "Dropping sample schema $opt{sample_schema}\n";
+	$dbh->do(qq{ DROP SCHEMA IF EXISTS $opt{sample_schema} CASCADE });
 }
 
 if ($opt{file}) {
-  open STDOUT, '>', $opt{file} or croak "unable to redirect stdout: $!";
+	open STDOUT, '>', $opt{file} or croak "unable to redirect stdout: $!";
 }
 
 my ($server_encoding) = $dbh->selectrow_array(qq{ SHOW server_encoding });
@@ -570,19 +546,19 @@ notice "Client encoding is $opt{encoding}\n";
 binmode STDOUT, ":encoding($opt{encoding})";
 
 unless ($opt{'data-only'}) {
-  notice "Exporting schema\n";
+	notice "Exporting schema\n";
 
-  local $ENV{PGUSER} = $opt{db_user};
-  local $ENV{PGPASSWORD} = $opt{db_pass};
-  local $ENV{PGDATABASE} = $opt{db_name};
-  local $ENV{PGHOST} = $opt{db_host};
-  local $ENV{PGPORT} = $opt{db_port};
-  local $ENV{PGCLIENTENCODING} = $opt{encoding};
+	local $ENV{PGUSER} = $opt{db_user};
+	local $ENV{PGPASSWORD} = $opt{db_pass};
+	local $ENV{PGDATABASE} = $opt{db_name};
+	local $ENV{PGHOST} = $opt{db_host};
+	local $ENV{PGPORT} = $opt{db_port};
+	local $ENV{PGCLIENTENCODING} = $opt{encoding};
 
-  my @cmd = ('pg_dump', '--schema-only');
-  push @cmd, '--no-privileges' if $opt{'no-privileges'};
-  push @cmd, "--schema=$opt{schema}" if $opt{schema};
-  system(@cmd) == 0 or croak "command '@cmd' failed: $?";
+	my @cmd = ('pg_dump', '--schema-only');
+	push @cmd, '--no-privileges' if $opt{'no-privileges'};
+	push @cmd, "--schema=$opt{schema}" if $opt{schema};
+	system(@cmd) == 0 or croak "command '@cmd' failed: $?";
 }
 
 # If running PostgreSQL 9.1 or later, use UNLOGGED tables
@@ -595,14 +571,14 @@ my $created_schema = 1; # keep track that we actually did it; see END block
 # parse limit rules
 my @limits;
 foreach my $limit (grep { /\S/ } map { split /\s*,\s*/ } list($opt{limit})) {
-  $limit =~ s/^\s+|\s+$//g;
-  $limit = ".* = $limit" if $limit =~ /^\d+$/;
+	$limit =~ s/^\s+|\s+$//g;
+	$limit = ".* = $limit" if $limit =~ /^\d+$/;
 
-  my ($match, $rule) = ($limit =~ /^([^=\s]+) \s* = \s* (.*)$/x)
-    or croak "unexpected limit value '$limit'";
-  $match = '.*' if $match eq '*';
+	my ($match, $rule) = ($limit =~ /^([^=\s]+) \s* = \s* (.*)$/x)
+	  or croak "unexpected limit value '$limit'";
+	$match = '.*' if $match eq '*';
 
-  push @limits, [$match, $rule];
+	push @limits, [$match, $rule];
 }
 notice "[limit] $_->[0] = $_->[1]\n" foreach @limits;
 
@@ -612,80 +588,81 @@ my @tables;
 my %sample_tables; # real table name -> sample table name
 my $sth = $dbh->table_info(undef, undef, undef, 'TABLE');
 while (my $row = lower_keys($sth->fetchrow_hashref)) {
-  next unless uc $row->{table_type} eq 'TABLE'; # skip SYSTEM TABLE values
-  next if $row->{table_schem} eq 'information_schema'; # special pg schema
-  next if $opt{schema} && $row->{table_schem} ne $opt{schema};
+	next unless uc $row->{table_type} eq 'TABLE'; # skip SYSTEM TABLE values
+	next if $row->{table_schem} eq 'information_schema'; # special pg schema
+	next if $opt{schema} && $row->{table_schem} ne $opt{schema};
 
-  my $sname = $row->{pg_schema} || unquote_identifier($row->{TABLE_SCHEM})
-    or die "no pg_schema or TABLE_SCHEM value?!";
+	my $sname = $row->{pg_schema} || unquote_identifier($row->{TABLE_SCHEM})
+	  or die "no pg_schema or TABLE_SCHEM value?!";
 
-  my $tname = $row->{pg_table} || unquote_identifier($row->{TABLE_NAME})
-    or die "no pg_table or TABLE_NAME value?!";
+	my $tname = $row->{pg_table} || unquote_identifier($row->{TABLE_NAME})
+	  or die "no pg_table or TABLE_NAME value?!";
 
-  my $table = Table->new($sname, $tname);
-  push @tables, $table;
+	my $table = Table->new($sname, $tname);
+	push @tables, $table;
 
-  my $sample_table = sample_table($table);
-  $sample_tables{ $table } = $sample_table;
+	my $sample_table = sample_table($table);
+	$sample_tables{$table} = $sample_table;
 
-  notice "Creating table $sample_table ";
+	notice "Creating table $sample_table ";
 
-  # find first matching limit rule
-  my $tablesample = '';
-  my $where = 'TRUE';
-  my $limit = '';
-  my $order = '';
-  foreach (@limits) {
-    $table->unquoted =~ /^$_->[0]$/i || $table->table =~ /^$_->[0]$/i or next;
+	# find first matching limit rule
+	my $tablesample = '';
+	my $where = 'TRUE';
+	my $limit = '';
+	my $order = '';
+	foreach (@limits) {
+		$table->unquoted =~ /^$_->[0]$/i || $table->table =~ /^$_->[0]$/i or next;
 
-    if ($_->[1] eq '*') { # include all rows
-      $limit = '';
-    } elsif ($_->[1] =~ /^\d+$/) { # numeric value turned into LIMIT
-      if (!$opt{random} || $pg_version < version->declare('9.5')) {
-        $limit = "LIMIT $_->[1]";
-      } else {
-        my ($table_num_rows) = $dbh->selectrow_array(qq{
+		if ($_->[1] eq '*') { # include all rows
+			$limit = '';
+		} elsif ($_->[1] =~ /^\d+$/) { # numeric value turned into LIMIT
+			if (!$opt{random} || $pg_version < version->declare('9.5')) {
+				$limit = "LIMIT $_->[1]";
+			} else {
+				my ($table_num_rows) = $dbh->selectrow_array(
+					qq{
           SELECT greatest(count(*), ?) FROM $table
-        }, undef, $_->[1]);
-        my $percent = 100 * $_->[1] / $table_num_rows;
-        $tablesample = "TABLESAMPLE BERNOULLI ($percent)";
-      }
-    } elsif ($_->[1] =~ /^\d+(\.\d+)?%$/) { # percent value turned into LIMIT
-      if (not $opt{random} or $pg_version < version->declare('9.5')) {
-        my ($table_num_rows) = $dbh->selectrow_array(qq{ SELECT count(*) FROM $table });
-        my $percent = (substr $_->[1], 0, (length $_->[1]) - 1) / 100;
-        my $total_rows = int($table_num_rows * $percent);
+        }, undef, $_->[1]
+				);
+				my $percent = 100 * $_->[1] / $table_num_rows;
+				$tablesample = "TABLESAMPLE BERNOULLI ($percent)";
+			}
+		} elsif ($_->[1] =~ /^\d+(\.\d+)?%$/) { # percent value turned into LIMIT
+			if (not $opt{random} or $pg_version < version->declare('9.5')) {
+				my ($table_num_rows) = $dbh->selectrow_array(qq{ SELECT count(*) FROM $table });
+				my $percent = (substr $_->[1], 0, (length $_->[1]) - 1) / 100;
+				my $total_rows = int($table_num_rows * $percent);
 
-        $limit = "LIMIT $total_rows";
-      } else {
-        my $percent = (substr $_->[1], 0, (length $_->[1]) - 1);
-        $tablesample = "TABLESAMPLE BERNOULLI ($percent)";
-      }
-    } else { # otherwise treated as subselect
-      $where = "($_->[1])";
-    }
+				$limit = "LIMIT $total_rows";
+			} else {
+				my $percent = (substr $_->[1], 0, (length $_->[1]) - 1);
+				$tablesample = "TABLESAMPLE BERNOULLI ($percent)";
+			}
+		} else { # otherwise treated as subselect
+			$where = "($_->[1])";
+		}
 
-    last;
-  }
-  # warn "\n[LIMIT] $table WHERE $where $limit\n";
+		last;
+	}
 
-  if ($opt{random} && $pg_version < version->declare('9.5')) {
-    $order = $opt{random} ? 'ORDER BY random()' : '';
-  } elsif (my $direction = $opt{ordered}) {
-    my @cols = find_candidate_key($table);
-    if (@cols) {
-      my $cols = join ', ',
-        map { "$_ $direction" }
-        map { $dbh->quote_identifier($_) }
-        @cols
-      ;
-      $order = "ORDER BY $cols";
-    } else {
-      notice "No candidate key found for '$table'; ignoring --ordered";
-    }
-  }
+	# warn "\n[LIMIT] $table WHERE $where $limit\n";
 
-  $dbh->do(qq{
+	if ($opt{random} && $pg_version < version->declare('9.5')) {
+		$order = $opt{random} ? 'ORDER BY random()' : '';
+	} elsif (my $direction = $opt{ordered}) {
+		my @cols = find_candidate_key($table);
+		if (@cols) {
+			my $cols = join ', ',map { "$_ $direction" }
+			  map { $dbh->quote_identifier($_) }@cols;
+			$order = "ORDER BY $cols";
+		} else {
+			notice "No candidate key found for '$table'; ignoring --ordered";
+		}
+	}
+
+	$dbh->do(
+		qq{
     CREATE $unlogged TABLE $sample_table AS
             SELECT *
          FROM ONLY $table
@@ -693,78 +670,73 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
              WHERE $where
             $order
             $limit
-  });
-
-  if ($opt{verbose}) {
-    my ($num_rows) =
-      $dbh->selectrow_array(qq{ SELECT count(*) FROM $sample_table });
-    notice "$num_rows\n";
   }
+	);
+
+	if ($opt{verbose}) {
+		my ($num_rows) =$dbh->selectrow_array(qq{ SELECT count(*) FROM $sample_table });
+		notice "$num_rows\n";
+	}
 }
 
 # Find foreign keys
 my @fks;
 foreach my $table (@tables) {
-  # find all foreign keys referencing this table
-  my $sth = $dbh->foreign_key_info(
-    undef, $table->schema, $table->table, # target table
-    undef, undef, undef,                  # fk table
-  ) or next;
 
-  # There can be multiple rows for a single FK (composite FK)
-  my %fks;
-  while (my $row = lower_keys($sth->fetchrow_hashref)) {
-    my $target_col = $row->{uk_column_name} or croak "no uk_column_name?!";
-    my $fk_table = Table->new(
-      unquote_identifier($row->{fk_table_schem}),
-      unquote_identifier($row->{fk_table_name}),
-    );
-    my $fk_name = "$fk_table.$row->{fk_name}"; # unique key to group FK rows
-    my $fk_col = $row->{fk_column_name};
+	# find all foreign keys referencing this table
+	my $sth = $dbh->foreign_key_info(
+		undef, $table->schema, $table->table, # target table
+		undef, undef, undef,                  # fk table
+	) or next;
 
-    $fks{ $fk_name } ||= [$fk_table, $table];
-    push @{ $fks{ $fk_name } }, [$fk_col, $target_col];
-  }
-  push @fks, values %fks;
+	# There can be multiple rows for a single FK (composite FK)
+	my %fks;
+	while (my $row = lower_keys($sth->fetchrow_hashref)) {
+		my $target_col = $row->{uk_column_name} or croak "no uk_column_name?!";
+		my $fk_table = Table->new(unquote_identifier($row->{fk_table_schem}),unquote_identifier($row->{fk_table_name}),);
+		my $fk_name = "$fk_table.$row->{fk_name}"; # unique key to group FK rows
+		my $fk_col = $row->{fk_column_name};
+
+		$fks{$fk_name} ||= [$fk_table, $table];
+		push @{ $fks{$fk_name} }, [$fk_col, $target_col];
+	}
+	push @fks, values %fks;
 }
 
 # create indexes on sample table FKs
 my $idx = 0;
 foreach my $fk (@fks) {
-  my ($fk_table, $table, @pairs) = @$fk;
+	my ($fk_table, $table, @pairs) = @$fk;
 
-  my $sample_fk_table = $sample_tables{ $fk_table };
-  my $idx_name = $dbh->quote_identifier("$opt{sample_schema}_idx" . ++$idx);
-  my $fk_cols = join ', ', map { $_->[0] } @pairs;
-  $dbh->do(qq{ CREATE INDEX $idx_name ON $sample_fk_table ($fk_cols) });
+	my $sample_fk_table = $sample_tables{$fk_table};
+	my $idx_name = $dbh->quote_identifier("$opt{sample_schema}_idx" . ++$idx);
+	my $fk_cols = join ', ', map { $_->[0] } @pairs;
+	$dbh->do(qq{ CREATE INDEX $idx_name ON $sample_fk_table ($fk_cols) });
 }
 
 # Keep inserting rows to satisfy any fk constraints until no more
 # are inserted. This should handle circular references.
 my $num_rows = 1;
 while ($num_rows) {
-  $num_rows = 0;
+	$num_rows = 0;
 
-  foreach my $fk (@fks) {
-    my ($fk_table, $target_table, @pairs) = @$fk;
-    my $target_sample_table = $sample_tables{ $target_table };
-    my $sample_fk_table = $sample_tables{ $fk_table };
+	foreach my $fk (@fks) {
+		my ($fk_table, $target_table, @pairs) = @$fk;
+		my $target_sample_table = $sample_tables{$target_table};
+		my $sample_fk_table = $sample_tables{$fk_table};
 
-    my $fk_cols = join ', ', map { $_->[0] } @pairs;
-    my $target_cols = join ', ', map { $_->[1] } @pairs;
+		my $fk_cols = join ', ', map { $_->[0] } @pairs;
+		my $target_cols = join ', ', map { $_->[1] } @pairs;
 
-    my $join1 = join ' AND ',
-      map { "f1.$_->[0] = t1.$_->[1]" } @pairs;
+		my $join1 = join ' AND ',map { "f1.$_->[0] = t1.$_->[1]" } @pairs;
 
-    my $join2 = join ' AND ',
-      map { "t1.$_->[1] = s1.$_->[1]" } @pairs;
+		my $join2 = join ' AND ',map { "t1.$_->[1] = s1.$_->[1]" } @pairs;
 
-    my $where = join ' AND ',
-      map { "s1.$_->[1] IS NULL" } @pairs; 
+		my $where = join ' AND ',map { "s1.$_->[1] IS NULL" } @pairs;
 
-    # Insert into the sample table all the rows needed to
-    # satisfy the fk table, except those already present.
-    my $query = qq{
+		# Insert into the sample table all the rows needed to
+		# satisfy the fk table, except those already present.
+		my $query = qq{
       INSERT INTO $target_sample_table
            SELECT DISTINCT t1.*
              FROM $target_table t1
@@ -773,44 +745,43 @@ while ($num_rows) {
             WHERE $where
     };
 
-    #warn "\nQUERY:\n$query\n";
-    # my $sth = $dbh->prepare(qq{ EXPLAIN $query });
-    # $sth->execute;
-    # while (my $row = $sth->fetchrow_arrayref) {
-    #   warn @$row, "\n";
-    # }
-    # warn "\n\n";
+		#warn "\nQUERY:\n$query\n";
+		# my $sth = $dbh->prepare(qq{ EXPLAIN $query });
+		# $sth->execute;
+		# while (my $row = $sth->fetchrow_arrayref) {
+		#   warn @$row, "\n";
+		# }
+		# warn "\n\n";
 
-    notice
-      "Copying $target_table ($target_cols) rows referenced from " .
-      "$sample_fk_table ($fk_cols)... "
-    ;
+		notice"Copying $target_table ($target_cols) rows referenced from " ."$sample_fk_table ($fk_cols)... ";
 
-    my $count = $dbh->do($query) || 0;
-    notice "$count rows\n";
+		my $count = $dbh->do($query) || 0;
+		notice "$count rows\n";
 
-    $num_rows += $count;
-  } 
+		$num_rows += $count;
+	}
 }
 
 # fetch all sequences and current values
-$sth = $dbh->prepare(qq{
+$sth = $dbh->prepare(
+	qq{
   SELECT sequence_schema
          ,sequence_name
     FROM information_schema.sequences
    WHERE sequence_schema NOT LIKE 'pg_%'
-});
+}
+);
 $sth->execute;
 my %seq;
 while (my $row = $sth->fetchrow_hashref) {
-  next if $opt{schema} && $row->{sequence_schema} ne $opt{schema};
+	next if $opt{schema} && $row->{sequence_schema} ne $opt{schema};
 
-  my $name = Table->new($row->{sequence_schema}, $row->{sequence_name});
-  $seq{ $name } = 0;
+	my $name = Table->new($row->{sequence_schema}, $row->{sequence_name});
+	$seq{$name} = 0;
 }
 foreach my $name (keys %seq) {
-  my ($lastval) = $dbh->selectrow_array(qq{ SELECT last_value FROM $name });
-  $seq{ $name } = $lastval;
+	my ($lastval) = $dbh->selectrow_array(qq{ SELECT last_value FROM $name });
+	$seq{$name} = $lastval;
 }
 
 # Most of these were copied from the pg_dump output.
@@ -827,56 +798,57 @@ EOF
 notice "Exporting sequences\n";
 print "\n";
 foreach my $name (sort keys %seq) {
-  my $constant = quote_constant($name);
-  print "SELECT pg_catalog.setval($constant, $seq{ $name });\n";
+	my $constant = quote_constant($name);
+	print "SELECT pg_catalog.setval($constant, $seq{ $name });\n";
 }
 print "\n";
 
 # Disable all foreign key constraints temporarily
 print "\n";
 foreach my $table (@tables) {
-  print "ALTER TABLE $table DISABLE TRIGGER ALL;\n";
+	print "ALTER TABLE $table DISABLE TRIGGER ALL;\n";
 }
 print "\n";
 
 foreach my $table (@tables) {
-  my $sample_table = sample_table($table);
-  if ($opt{verbose}) {
-    my ($count) = $dbh->selectrow_array("SELECT count(*) FROM $sample_table");
-    notice "Exporting data from $sample_table ($count)\n";
-  }
-  print "COPY $table FROM stdin;\n";
+	my $sample_table = sample_table($table);
+	if ($opt{verbose}) {
+		my ($count) = $dbh->selectrow_array("SELECT count(*) FROM $sample_table");
+		notice "Exporting data from $sample_table ($count)\n";
+	}
+	print "COPY $table FROM stdin;\n";
 
-  if ($opt{ordered}) {
-    my @cols = find_candidate_key($table);
-    if (@cols) {
-      my $cols = join ', ', map { $dbh->quote_identifier($_) } @cols;
-      $sample_table = "(SELECT * FROM $sample_table ORDER BY $cols)";
-    } else {
-      notice "No candidate key found for '$table'; ignoring --ordered";
-    }
-  }
+	if ($opt{ordered}) {
+		my @cols = find_candidate_key($table);
+		if (@cols) {
+			my $cols = join ', ', map { $dbh->quote_identifier($_) } @cols;
+			$sample_table = "(SELECT * FROM $sample_table ORDER BY $cols)";
+		} else {
+			notice "No candidate key found for '$table'; ignoring --ordered";
+		}
+	}
 
-  $dbh->do(qq{ COPY $sample_table TO STDOUT });
-  my $buffer = '';
-  print $buffer while $dbh->pg_getcopydata($buffer) >= 0;
-  print "\\.\n\n";
+	$dbh->do(qq{ COPY $sample_table TO STDOUT });
+	my $buffer = '';
+	print $buffer while $dbh->pg_getcopydata($buffer) >= 0;
+	print "\\.\n\n";
 }
 
 # Re-enable all triggers
 print "\n";
 foreach my $table (@tables) {
-  print "ALTER TABLE $table ENABLE TRIGGER ALL;\n";
+	print "ALTER TABLE $table ENABLE TRIGGER ALL;\n";
 }
 print "\n";
 
-END {
-  # remove sample tables unless requested not to
-  if ($created_schema && !$opt{keep}) {
-    notice "Dropping sample schema $opt{sample_schema}\n";
-    $dbh->do("DROP SCHEMA $opt{sample_schema} CASCADE");
-  }
 
-  notice "Done.\n";
-  exit 0;
+END {
+	# remove sample tables unless requested not to
+	if ($created_schema && !$opt{keep}) {
+		notice "Dropping sample schema $opt{sample_schema}\n";
+		$dbh->do("DROP SCHEMA $opt{sample_schema} CASCADE");
+	}
+
+	notice "Done.\n";
+	exit 0;
 }
