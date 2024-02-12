@@ -23,8 +23,12 @@ PostgreSQL database named "mydb", a sample database could be constructed with:
 
 ```
 $ createdb sampledb
-$ pg_sample mydb | psql sampledb
+$ pg_sample mydb | psql -v ON_ERROR_STOP=1 sampledb
 ```
+
+The "-v ON_ERROR_STOP=1" option is not required but is recommended to catch any
+import errors.
+
 
 ## Requirements
 
