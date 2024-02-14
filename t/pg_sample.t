@@ -278,8 +278,11 @@ if ($opt{cover}) {
   $ENV{PERL5OPT} .= ' -MDevel::Cover=+select,pg_sample,+ignore,.*';
 }
 
-my @opts = ('--limit=100');
-push @opts, '--verbose' if $opt{verbose};
+my @base_opts = ();
+push @base_opts, '--db_pass='.$opt{db_pass} if $opt{db_pass};
+push @base_opts, '--verbose' if $opt{verbose};
+my @opts = (@base_opts, '--limit=100');
+
 my $cmd = "pg_sample @opts $opt{db_name} > sample.sql";
 system($cmd) == 0 or die "pg_sample failed: $?";
 
@@ -306,7 +309,7 @@ my $row = $dbh->selectrow_hashref(qq{
 is($row->{name}, "\\.", "escaping");
 
 # without --ordered, test_ordered returns as per clustered order
-my($ord) = $dbh->selectrow_array(qq{ SELECT STRING_AGG(id::text, ',') FROM "test_ordered" GROUP BY TRUE });
+my($ord) = $dbh->selectrow_array(qq{ SELECT STRING_AGG(id::text, ',') FROM "test_ordered" });
 is($ord, '2,1', "ordered test case broken, this should return by clustered order");
 
 ($cnt) = $dbh->selectrow_array("SELECT count(*) FROM $long_schema.$long_name");
@@ -314,8 +317,7 @@ is($cnt, 10, "long table name should have 10 rows");
 
 
 
-@opts = ('--ordered');
-push @opts, '--verbose' if $opt{verbose};
+@opts = (@base_opts, '--ordered');
 $cmd = "pg_sample @opts $opt{db_name} > sample_ordered.sql";
 system($cmd) == 0 or die "pg_sample failed: $?";
 
@@ -328,7 +330,7 @@ $dbh = connect_db();
 $cmd = "psql -q -X -v ON_ERROR_STOP=1 $opt{db_name} < sample_ordered.sql";
 system($cmd) == 0 or die "pg_sample failed: $?";
 
-$ord = $dbh->selectrow_array(qq{ SELECT STRING_AGG(id::text, ',') FROM "test_ordered" GROUP BY TRUE });
+$ord = $dbh->selectrow_array(qq{ SELECT STRING_AGG(id::text, ',') FROM "test_ordered" });
 is($ord, '1,2', "results should be ordered");
 
 $dbh->disconnect;
