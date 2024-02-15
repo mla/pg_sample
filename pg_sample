@@ -684,15 +684,30 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
       notice "No candidate key found for '$table'; ignoring --ordered";
     }
   }
-
+  # Only extract non-generated columns, ORDER BY necessary because later
+  # joins rely on column order to be identical between tables.
+  my @cols_to_copy = map { $_->{column_name} } $dbh->selectall_array(qq{
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_name=?
+      AND table_schema=?
+      AND is_generated='NEVER'
+      ORDER BY ordinal_position
+  }, { Slice => {} }, ($table->table, $table->schema) );
+  notice "only copying cols [@cols_to_copy] ";
+  # Quote the column names just in case.
+  my $quoted_cols_to_copy = join(
+    ', ',
+    map { $dbh->quote_identifier($_) } @cols_to_copy
+  );
   $dbh->do(qq{
     CREATE $unlogged TABLE $sample_table AS
-            SELECT *
-         FROM ONLY $table
+      SELECT $quoted_cols_to_copy
+      FROM ONLY $table
       $tablesample
-             WHERE $where
-            $order
-            $limit
+      WHERE $where
+      $order
+      $limit
   });
 
   if ($opt{verbose}) {

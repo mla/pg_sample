@@ -26,7 +26,7 @@ use warnings;
 use Carp;
 use DBI;
 use Getopt::Long qw/ GetOptions :config no_ignore_case /;
-use Test::More tests => 15;
+use Test::More tests => 26;
 
 $| = 1;
 
@@ -273,6 +273,27 @@ $dbh->do(qq{CREATE INDEX "my_index" ON "test_ordered" (name);});
 $dbh->do(qq{INSERT INTO "test_ordered" VALUES (1, 'b'), (2, 'a');});
 $dbh->do(qq{CLUSTER "test_ordered" USING "my_index";  -- with this, default SELECT will return 2,1;});
 
+### Generated Columns
+# We have 3 columns here to catch problems with failing to order by our ordinal position.
+$dbh->do(qq{
+  CREATE TABLE some_numbers(
+    id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY
+    , base_val int
+    , double_val int GENERATED ALWAYS AS (base_val*2) STORED
+    , other_val text
+  );
+});
+$dbh->do(qq{
+  INSERT INTO some_numbers(base_val, other_val) (
+    SELECT
+      generate_series AS base_val,
+      RPAD('a', generate_series, 'x') AS other_val
+    FROM generate_series(1, 10)
+  );
+});
+
+### End Generated Columns
+
 # Perform code coverage analysis? Requires Devel::Cover module.
 if ($opt{cover}) {
   $ENV{PERL5OPT} .= ' -MDevel::Cover=+select,pg_sample,+ignore,.*';
@@ -315,7 +336,15 @@ is($ord, '2,1', "ordered test case broken, this should return by clustered order
 ($cnt) = $dbh->selectrow_array("SELECT count(*) FROM $long_schema.$long_name");
 is($cnt, 10, "long table name should have 10 rows");
 
-
+# Check the generated table loaded properly
+my @generated_rows = $dbh->selectall_array(
+  qq{ SELECT base_val, double_val FROM some_numbers; },
+  { Slice => {} }
+);
+is(scalar @generated_rows, 10, "some_numbers table should have 10 rows");
+foreach my $row (@generated_rows) {
+  is($row->{double_val}, $row->{base_val}*2, "The double_val column is not 2x the base_val");
+}
 
 @opts = (@base_opts, '--ordered');
 $cmd = "pg_sample @opts $opt{db_name} > sample_ordered.sql";
