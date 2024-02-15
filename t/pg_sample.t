@@ -26,7 +26,7 @@ use warnings;
 use Carp;
 use DBI;
 use Getopt::Long qw/ GetOptions :config no_ignore_case /;
-use Test::More tests => 26;
+use Test::More tests => 27;
 
 $| = 1;
 
@@ -277,12 +277,13 @@ $dbh->do(qq{CLUSTER "test_ordered" USING "my_index";  -- with this, default SELE
 # We have 3 columns here to catch problems with failing to order by our ordinal position.
 $dbh->do(qq{
   CREATE TABLE some_numbers(
-    id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY
+    number_id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY
     , base_val int
     , double_val int GENERATED ALWAYS AS (base_val*2) STORED
     , other_val text
   );
 });
+
 $dbh->do(qq{
   INSERT INTO some_numbers(base_val, other_val) (
     SELECT
@@ -290,6 +291,20 @@ $dbh->do(qq{
       RPAD('a', generate_series, 'x') AS other_val
     FROM generate_series(1, 10)
   );
+});
+
+$dbh->do(qq{
+  CREATE TABLE some_number_ref(
+    ref_id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY
+    , number_id int REFERENCES some_numbers(number_id)
+    , note text
+  );
+});
+
+$dbh->do(qq{
+  INSERT INTO some_number_ref(number_id, note) (
+    SELECT number_id, RPAD('b',base_val,'y') FROM some_numbers
+  )
 });
 
 ### End Generated Columns
@@ -345,6 +360,12 @@ is(scalar @generated_rows, 10, "some_numbers table should have 10 rows");
 foreach my $row (@generated_rows) {
   is($row->{double_val}, $row->{base_val}*2, "The double_val column is not 2x the base_val");
 }
+# Check generated table fk referential integrity
+my @reference_rows = $dbh->selectall_array(
+  qq{ SELECT * FROM some_number_ref; },
+  { Slice => {} }
+);
+is(scalar @reference_rows, 10, "The some_number_ref table should have 10 rows");
 
 @opts = (@base_opts, '--ordered');
 $cmd = "pg_sample @opts $opt{db_name} > sample_ordered.sql";
