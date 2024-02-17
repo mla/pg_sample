@@ -26,7 +26,7 @@ use warnings;
 use Carp;
 use DBI;
 use Getopt::Long qw/ GetOptions :config no_ignore_case /;
-use Test::More tests => 15;
+use Test::More tests => 27;
 
 $| = 1;
 
@@ -273,13 +273,52 @@ $dbh->do(qq{CREATE INDEX "my_index" ON "test_ordered" (name);});
 $dbh->do(qq{INSERT INTO "test_ordered" VALUES (1, 'b'), (2, 'a');});
 $dbh->do(qq{CLUSTER "test_ordered" USING "my_index";  -- with this, default SELECT will return 2,1;});
 
+### Generated Columns
+# We have 3 columns here to catch problems with failing to order by our ordinal position.
+$dbh->do(qq{
+  CREATE TABLE some_numbers(
+    number_id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY
+    , base_val int
+    , double_val int GENERATED ALWAYS AS (base_val*2) STORED
+    , other_val text
+  );
+});
+
+$dbh->do(qq{
+  INSERT INTO some_numbers(base_val, other_val) (
+    SELECT
+      generate_series AS base_val,
+      RPAD('a', generate_series, 'x') AS other_val
+    FROM generate_series(1, 10)
+  );
+});
+
+$dbh->do(qq{
+  CREATE TABLE some_number_ref(
+    ref_id int PRIMARY KEY GENERATED ALWAYS AS IDENTITY
+    , number_id int REFERENCES some_numbers(number_id)
+    , note text
+  );
+});
+
+$dbh->do(qq{
+  INSERT INTO some_number_ref(number_id, note) (
+    SELECT number_id, RPAD('b',base_val,'y') FROM some_numbers
+  )
+});
+
+### End Generated Columns
+
 # Perform code coverage analysis? Requires Devel::Cover module.
 if ($opt{cover}) {
   $ENV{PERL5OPT} .= ' -MDevel::Cover=+select,pg_sample,+ignore,.*';
 }
 
-my @opts = ('--limit=100');
-push @opts, '--verbose' if $opt{verbose};
+my @base_opts = ();
+push @base_opts, '--db_pass='.$opt{db_pass} if $opt{db_pass};
+push @base_opts, '--verbose' if $opt{verbose};
+my @opts = (@base_opts, '--limit=100');
+
 my $cmd = "pg_sample @opts $opt{db_name} > sample.sql";
 system($cmd) == 0 or die "pg_sample failed: $?";
 
@@ -306,16 +345,29 @@ my $row = $dbh->selectrow_hashref(qq{
 is($row->{name}, "\\.", "escaping");
 
 # without --ordered, test_ordered returns as per clustered order
-my($ord) = $dbh->selectrow_array(qq{ SELECT STRING_AGG(id::text, ',') FROM "test_ordered" GROUP BY TRUE });
+my($ord) = $dbh->selectrow_array(qq{ SELECT STRING_AGG(id::text, ',') FROM "test_ordered" });
 is($ord, '2,1', "ordered test case broken, this should return by clustered order");
 
 ($cnt) = $dbh->selectrow_array("SELECT count(*) FROM $long_schema.$long_name");
 is($cnt, 10, "long table name should have 10 rows");
 
+# Check the generated table loaded properly
+my @generated_rows = $dbh->selectall_array(
+  qq{ SELECT base_val, double_val FROM some_numbers; },
+  { Slice => {} }
+);
+is(scalar @generated_rows, 10, "some_numbers table should have 10 rows");
+foreach my $row (@generated_rows) {
+  is($row->{double_val}, $row->{base_val}*2, "The double_val column is not 2x the base_val");
+}
+# Check generated table fk referential integrity
+my @reference_rows = $dbh->selectall_array(
+  qq{ SELECT * FROM some_number_ref; },
+  { Slice => {} }
+);
+is(scalar @reference_rows, 10, "The some_number_ref table should have 10 rows");
 
-
-@opts = ('--ordered');
-push @opts, '--verbose' if $opt{verbose};
+@opts = (@base_opts, '--ordered');
 $cmd = "pg_sample @opts $opt{db_name} > sample_ordered.sql";
 system($cmd) == 0 or die "pg_sample failed: $?";
 
@@ -328,7 +380,7 @@ $dbh = connect_db();
 $cmd = "psql -q -X -v ON_ERROR_STOP=1 $opt{db_name} < sample_ordered.sql";
 system($cmd) == 0 or die "pg_sample failed: $?";
 
-$ord = $dbh->selectrow_array(qq{ SELECT STRING_AGG(id::text, ',') FROM "test_ordered" GROUP BY TRUE });
+$ord = $dbh->selectrow_array(qq{ SELECT STRING_AGG(id::text, ',') FROM "test_ordered" });
 is($ord, '1,2', "results should be ordered");
 
 $dbh->disconnect;

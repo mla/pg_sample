@@ -225,6 +225,7 @@ BEGIN {
     return bless {
       schema => shift,
       table => shift,
+      columns => shift,
     };
   }
   
@@ -250,6 +251,31 @@ BEGIN {
   
     $self->{schema} = shift if @_;
     return $self->{schema};
+  }
+
+  sub columns {
+    my $self = shift;
+    return $self->{columns};
+  }
+
+  sub quote_column {
+    my $self = shift;
+    my $column = shift;
+    my $alias = shift;
+    if (defined($alias)) {
+      return "$alias." . $self->dbh->quote_identifier($column);
+    } else {
+      return $self->dbh->quote_identifier($column);
+    }
+  }
+
+  sub columns_quoted {
+    my $self = shift;
+    my $alias = shift;
+    return join(
+      ', ',
+      map { $self->quote_column($_, $alias) } @{$self->{columns}}
+    );
   }
   
   sub table {
@@ -411,7 +437,7 @@ sub quote_constant (@) {
       $name;
     };
 
-    return Table->new($opt{sample_schema}, $sample_table);
+    return Table->new($opt{sample_schema}, $sample_table, $table->columns);
   }
 }
 
@@ -611,7 +637,9 @@ notice "[limit] $_->[0] = $_->[1]\n" foreach @limits;
 my @tables;
 my %sample_tables; # real table name -> sample table name
 my $sth = $dbh->table_info(undef, undef, undef, 'TABLE');
-while (my $row = lower_keys($sth->fetchrow_hashref)) {
+my $table_info = $sth->fetchall_arrayref({});
+foreach my $row (@{$table_info}) {
+  $row = lower_keys($row);
   next unless uc $row->{table_type} eq 'TABLE'; # skip SYSTEM TABLE values
   next if $row->{table_schem} eq 'information_schema'; # special pg schema
   next if $opt{schema} && $row->{table_schem} ne $opt{schema};
@@ -622,7 +650,16 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
   my $tname = $row->{pg_table} || unquote_identifier($row->{TABLE_NAME})
     or die "no pg_table or TABLE_NAME value?!";
 
-  my $table = Table->new($sname, $tname);
+  my $columns = [map { $_->{column_name} } $dbh->selectall_array(qq{
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_name=?
+      AND table_schema=?
+      AND is_generated='NEVER'
+      ORDER BY ordinal_position
+  }, { Slice => {} }, ($tname, $sname) ) ];
+
+  my $table = Table->new($sname, $tname, $columns);
   push @tables, $table;
 
   my $sample_table = sample_table($table);
@@ -684,15 +721,20 @@ while (my $row = lower_keys($sth->fetchrow_hashref)) {
       notice "No candidate key found for '$table'; ignoring --ordered";
     }
   }
+  # Only extract non-generated columns, ORDER BY necessary because later
+  # joins rely on column order to be identical between tables.
+  my $quoted_cols = $table->columns_quoted;
+  notice "copying cols [$quoted_cols] ";
+  # Quote the column names just in case.
 
   $dbh->do(qq{
     CREATE $unlogged TABLE $sample_table AS
-            SELECT *
-         FROM ONLY $table
+      SELECT $quoted_cols
+      FROM ONLY $table
       $tablesample
-             WHERE $where
-            $order
-            $limit
+      WHERE $where
+      $order
+      $limit
   });
 
   if ($opt{verbose}) {
@@ -718,6 +760,7 @@ foreach my $table (@tables) {
     my $fk_table = Table->new(
       unquote_identifier($row->{fk_table_schem}),
       unquote_identifier($row->{fk_table_name}),
+      $table->columns,
     );
     my $fk_name = "$fk_table.$row->{fk_name}"; # unique key to group FK rows
     my $fk_col = $row->{fk_column_name};
@@ -764,9 +807,10 @@ while ($num_rows) {
 
     # Insert into the sample table all the rows needed to
     # satisfy the fk table, except those already present.
+    my $quoted_cols = $target_table->columns_quoted("t1");
     my $query = qq{
       INSERT INTO $target_sample_table
-           SELECT DISTINCT t1.*
+           SELECT DISTINCT $quoted_cols
              FROM $target_table t1
                   JOIN $sample_fk_table f1 ON ($join1)
                   LEFT JOIN $target_sample_table s1 ON ($join2)
