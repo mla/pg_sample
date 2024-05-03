@@ -188,6 +188,18 @@ We support running `pg_sample` as a `docker` container:
 sudo docker run --network=host -v "$(pwd):/io" mla12/pg_sample -v [option ...] --file /io/myfile.sql <dbname>
 ```
 
+# TROUBLESHOOTING
+
+## Working with JSON Fields
+
+If you get the following error:
+
+```
+could not identify an equality operator for type json
+```
+
+You have one or more tables that have `json` column types. This error exists because `json` column types cannot execute equality comparisons natively. To solve this problem, you can convert these `json` columns into `jsonb` columns. However, if that is not feasible in your situation, an alternate solution is to run the [contrib/add_json_equality_operator.sql](https://github.com/mla/pg_sample/blob/master/contrib/add_json_equality_operator.sql) script against the database you are sampling and it will create helper functions for comparing `json` columns.
+
 # LICENSE
 
 This code is released under the Artistic License. See [perlartistic](http://search.cpan.org/perldoc?perlartistic).
