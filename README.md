@@ -180,6 +180,14 @@ __\-password=__*password*
 
     Password to connect with.
 
+## Importing dump into database
+
+You can import the dumped data directly into your PostgreSQL database using the psql command-line tool. It allows us to connect to our database and execute the commands from the generated SQL file. Example:
+
+```
+psql -h localhost -p 5432 -U postgres -d sampledb -f "/path/to/db_dump.sql"
+```
+
 ## Using with Docker
 
 We support running `pg_sample` as a `docker` container:
