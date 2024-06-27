@@ -1,17 +1,17 @@
 # NAME
 
-pg\_sample - extract a small, sample dataset from a larger PostgreSQL
+pg_sample - extract a small, sample dataset from a larger PostgreSQL
 database while maintaining referential integrity.
 
 # SYNOPSIS
 
-pg\_sample \[ option... \] \[ dbname \]
+pg_sample \[ option... \] \[ dbname \]
 
 # DESCRIPTION
 
-pg\_sample is a utility for exporting a small, sample dataset from a
+pg_sample is a utility for exporting a small, sample dataset from a
 larger PostgreSQL database. The output and command-line options closely
-resemble the pg\_dump backup utility (although only the plain-text format
+resemble the pg_dump backup utility (although only the plain-text format
 is supported).
 
 The sample database produced includes all tables from the original,
@@ -29,11 +29,10 @@ $ pg_sample mydb | psql -v ON_ERROR_STOP=1 sampledb
 The "-v ON_ERROR_STOP=1" option is not required but is recommended to catch any
 import errors.
 
-
 ## Requirements
 
 - PostgreSQL 8.1 or later
-- pg\_dump should be in your search path (in order to dump the schema)
+- pg_dump should be in your search path (in order to dump the schema)
 - Perl DBI and DBD::Pg (>= 2.0) modules
 
 ## Installation
@@ -44,18 +43,18 @@ run pg_sample with Docker.
 To install locally:
 
 1. Clone the repo. e.g.,
-    ```
-    $ git clone git@github.com:mla/pg_sample.git
-    ```
+   ```
+   $ git clone git@github.com:mla/pg_sample.git
+   ```
 2. Install dependencies. For Ubuntu / Mint, try:
-    ```
-    $ sudo apt install perl libdbi-perl libdbd-pg-perl
-    ```
+   ```
+   $ sudo apt install perl libdbi-perl libdbd-pg-perl
+   ```
 3. Run it.
-    ```
-    $ cd pg_sample
-    $ ./pg_sample ... # See below for options
-    ```
+   ```
+   $ cd pg_sample
+   $ ./pg_sample ... # See below for options
+   ```
 
 ## Command-line Options
 
@@ -65,36 +64,36 @@ _dbname_
     environment variable PGDATABASE, if defined; otherwise, uses
     the username of the user executing the script.
 
-__\-a__  
-__\--data-only__
+**\-a**  
+**\--data-only**
 
     Output only the data, not the schema (data definitions).
 
-__\--help__
+**\--help**
 
     Output detailed options and exit.
 
-__\-E__ _encoding_  
-__\--encoding=__*encoding*
+**\-E** _encoding_  
+**\--encoding=**_encoding_
 
     Use the specified character set encoding. If not specified, uses the
     environment variable PGCLIENTENCODING, if defined; otherwise, uses
     the encoding of the database.
 
-__\-f__ _file_  
-__\--file=__*file*
+**\-f** _file_  
+**\--file=**_file_
 
     Send output to the specified file. If omitted, standard output is used.
 
-__\--force__
+**\--force**
 
     Drop the sample schema if it exists.
 
-__\--keep__
+**\--keep**
 
     Don't delete the sample schema when the script finishes.
 
-__\--limit=__*limit*
+**\--limit=**_limit_
 
     As a numeric value, specifies the default number of rows to copy from
     each table (defaults to 100). Note that sample tables may end up with
@@ -130,55 +129,63 @@ __\--limit=__*limit*
 
     Rules are applied in order with the first match taking precedence.
 
-__\--ordered__
+**\--ordered**
 
     Guarantees deterministic row ordering in the generated scripts by ordering
     by primary key.
 
-__\--random__
+**\--random**
 
     Randomize the rows initially selected from each table. May significantly
     increase the running time of the script.
 
-__\--schema=__*name*
+**\--schema=**_name_
 
     The schema name to export (defaults to all).
 
-__\--sample-schema=__*name*
+**\--sample-schema=**_name_
 
     The schema name to use for the sample database (defaults to _pg_sample).
 
-__\--trace__
+**\--trace**
 
     Turn on Perl DBI tracing. See the DBI module documentation for details.
 
-__\--verbose__
+**\--verbose**
 
     Output status information to standard error.
 
 The following options control the database connection parameters.
 
-__\-h__ _host_  
-__\--host=__*host*
+**\-h** _host_  
+**\--host=**_host_
 
     The host name to connect to. Defaults to the PGHOST environment
     variable if not specified.
 
-__\-p__ _port_  
-__\--port=__*port*
+**\-p** _port_  
+**\--port=**_port_
 
     The database port to connect to. Defaults to the PGPORT environment
     variable, if set; otherwise, the default port is used.
 
-__\-U__ _username_  
-__\--username=__*username*
+**\-U** _username_  
+**\--username=**_username_
 
     User name to connect as.
 
-__\-W__ _password_  
-__\-password=__*password*
+**\-W** _password_  
+**\-password=**_password_
 
     Password to connect with.
+
+## Importing dump into database
+
+You can import the dumped data directly into your PostgreSQL database using the psql command-line tool. It allows us to connect to our database and execute the commands from the generated SQL file. Example:
+
+```
+psql -h localhost -p 5432 -U postgres -d sampledb -f "/path/to/db_dump.sql"
+```
 
 ## Using with Docker
 
@@ -206,7 +213,7 @@ This code is released under the Artistic License. See [perlartistic](http://sear
 
 # SEE ALSO
 
-createdb(1), pg\_dump(1), psql(1)
+createdb(1), pg_dump(1), psql(1)
 
 # AUTHOR
 
