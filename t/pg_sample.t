@@ -26,7 +26,7 @@ use warnings;
 use Carp;
 use DBI;
 use Getopt::Long qw/ GetOptions :config no_ignore_case /;
-use Test::More tests => 27;
+use Test::More tests => 28;
 
 $| = 1;
 
@@ -309,6 +309,36 @@ $dbh->do(qq{
 
 ### End Generated Columns
 
+### Inherited Table Column Ordinal Position
+# Define sub_table that inherits from base_table and then add a column to base_table.
+# The ordinal position of the columns in the restored database will be different than the original.
+#    * original database - base_id, sub_name, base_name
+#    * restored database - base_id, base_name, sub_name
+
+$dbh->do(qq{
+  CREATE TABLE base_table
+  (
+    base_id integer PRIMARY KEY
+  )
+});
+
+$dbh->do(qq{
+  CREATE TABLE sub_table
+  (
+    sub_name text
+  ) INHERITS (base_table)
+});
+
+$dbh->do(qq{ALTER TABLE base_table ADD COLUMN base_name text});
+
+$dbh->do(
+  qq{ INSERT INTO sub_table (base_id, base_name, sub_name) VALUES (?, ?, ?) },
+  undef,
+  1, "base", "sub"
+);
+
+### End Inherited Table Column Ordinal Position
+
 # Perform code coverage analysis? Requires Devel::Cover module.
 if ($opt{cover}) {
   $ENV{PERL5OPT} .= ' -MDevel::Cover=+select,pg_sample,+ignore,.*';
@@ -366,6 +396,12 @@ my @reference_rows = $dbh->selectall_array(
   { Slice => {} }
 );
 is(scalar @reference_rows, 10, "The some_number_ref table should have 10 rows");
+
+# Check inherited table column order
+my $inherited_row = $dbh->selectrow_hashref(qq{
+  SELECT * FROM sub_table
+});
+is($inherited_row->{base_name}, "base", "The base_name column is not 'base'");
 
 @opts = (@base_opts, '--ordered');
 $cmd = "pg_sample @opts $opt{db_name} > sample_ordered.sql";
