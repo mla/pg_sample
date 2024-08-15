@@ -135,6 +135,10 @@ __\--ordered__
     Guarantees deterministic row ordering in the generated scripts by ordering
     by primary key.
 
+    --ordered-desc and --ordered-asc are also available to 
+    control whether sort is descending or ascending, respectively.
+    Results are in descending ordered by default (newest records first) 
+
 __\--random__
 
     Randomize the rows initially selected from each table. May significantly
