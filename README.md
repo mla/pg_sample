@@ -137,7 +137,7 @@ __\--ordered__
 
     --ordered-desc and --ordered-asc are also available to 
     control whether sort is descending or ascending, respectively.
-    Results are in descending ordered by default (newest records first) 
+    Results are in descending order by default (newest records first) 
 
 __\--random__
 
