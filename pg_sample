@@ -92,7 +92,7 @@ apply to matching tables. Examples:
 
   # include all rows from the users table
   --limit="users = *"
- 
+
   # include 1,000 rows from users table
   --limit="users = 1000"
 
@@ -214,16 +214,16 @@ $SIG{TERM} = $SIG{INT} = $SIG{QUIT} = $SIG{HUP} = sub {
 BEGIN {
   # Encapsulate a fully-qualified Postgresql table name
   package Table;
-  
+
   use strict;
   use Carp;
   use overload '""' => 'quoted'; # interpolation results in quoted version
- 
+
   *dbh = \&main::connect_db;
-  
+
   sub new {
     my $class = shift;
-  
+
     $class = ref($class) || $class;
     return bless {
       schema => shift,
@@ -231,10 +231,10 @@ BEGIN {
       columns => shift,
     };
   }
-  
+
   sub quoted {
     my $self = shift;
-  
+
     return $self->dbh->quote_identifier(
       undef,
       $self->{schema},
@@ -248,10 +248,10 @@ BEGIN {
 
     return join '.', $self->{schema}, $self->{table};
   }
-  
+
   sub schema {
     my $self = shift;
-  
+
     $self->{schema} = shift if @_;
     return $self->{schema};
   }
@@ -280,27 +280,27 @@ BEGIN {
       map { $self->quote_column($_, $alias) } @{$self->{columns}}
     );
   }
-  
+
   sub table {
     my $self = shift;
-  
+
     $self->{table} = shift if @_;
     return $self->{table};
   }
-  
+
   sub DESTROY {}
-  
+
   sub AUTOLOAD {
     my $self = shift;
-  
+
     our $AUTOLOAD;
     $AUTOLOAD =~ s/.*:://g;
-  
+
     if ($AUTOLOAD =~ /^quoted_(.+)$/) {
       my $method = $1;
       return $self->dbh->quote_identifier($self->$method);
     }
-  
+
     croak "Can't locate object method \"$AUTOLOAD\" via package " .
           __PACKAGE__;
   }
@@ -323,7 +323,7 @@ my %opt; # closure; all functions have access to options
       $opt{db_host} ? "host=$opt{db_host}" : (),
       $opt{db_port} ? "port=$opt{db_port}" : (),
     ;
-  
+
     $dbh = DBI->connect(
       $dsn,
       $opt{db_user},
@@ -336,9 +336,9 @@ my %opt; # closure; all functions have access to options
         HandleError      => sub { confess( shift ) },
       },
     ) or croak "db connection failed!";
-  
+
     $dbh->trace(1) if defined $opt{trace};
-  
+
     return $dbh;
   }
 }
@@ -427,7 +427,7 @@ sub quote_constant (@) {
 
   sub sample_table ($) {
     my $table = shift;
-  
+
     my $key = join '_', $table->schema || 'public', $table->table;
 
     my $sample_table = $cache{ $key } //= do {
@@ -572,7 +572,7 @@ if ($opt{sample_schema} eq 'public') {
 }
 
 my ($schema_oid) = $dbh->selectrow_array(qq{
-  SELECT oid 
+  SELECT oid
     FROM pg_catalog.pg_namespace
    WHERE nspname = ?
 }, undef, $opt{sample_schema});
@@ -785,6 +785,21 @@ foreach my $fk (@fks) {
   $dbh->do(qq{ CREATE INDEX $idx_name ON $sample_fk_table ($fk_cols) });
 }
 
+# Function to check if inserts should be skipped for a table
+sub should_skip_insert_for_fk {
+    my ($table_name) = @_;
+    $table_name =~ s/"\."/\./g;
+    notice "$table_name\n";
+    foreach my $limit (@limits) {
+        my ($regex, $action) = @$limit;
+        if ($table_name =~ $regex && $action eq '*') {
+            notice "Skipping $table_name as all data is imported\n";
+            return 1;  # Skip if it matches the regex and action is '*'
+        }
+    }
+    return 0;  # Do not skip by default
+}
+
 # Keep inserting rows to satisfy any fk constraints until no more
 # are inserted. This should handle circular references.
 my $num_rows = 1;
@@ -806,7 +821,9 @@ while ($num_rows) {
       map { "t1.$_->[1] = s1.$_->[1]" } @pairs;
 
     my $where = join ' AND ',
-      map { "s1.$_->[1] IS NULL" } @pairs; 
+      map { "s1.$_->[1] IS NULL" } @pairs;
+
+    next if should_skip_insert_for_fk($target_table);
 
     # Insert into the sample table all the rows needed to
     # satisfy the fk table, except those already present.
@@ -837,7 +854,7 @@ while ($num_rows) {
     notice "$count rows\n";
 
     $num_rows += $count;
-  } 
+  }
 }
 
 # fetch all sequences and current values
