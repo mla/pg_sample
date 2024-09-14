@@ -1,5 +1,7 @@
   - Readme additions and corrections (thanks to @glass-ships)
   - Specify column ordering explicitly on COPY (thanks to @wekeesler)
+  - Skip trying to insert FKs if including entire table anyway
+    (thanks to @reshab48)
 
 1.17 Feb 17, 2023
   - Fix for handling of generated columns, update Perl version

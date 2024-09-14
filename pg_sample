@@ -785,20 +785,24 @@ foreach my $fk (@fks) {
   $dbh->do(qq{ CREATE INDEX $idx_name ON $sample_fk_table ($fk_cols) });
 }
 
-# Function to check if inserts should be skipped for a table
-sub should_skip_insert_for_fk {
-    my ($table_name) = @_;
-    $table_name =~ s/"\."/\./g;
-    notice "$table_name\n";
-    foreach my $limit (@limits) {
-        my ($regex, $action) = @$limit;
-        if ($table_name =~ $regex && $action eq '*') {
-            notice "Skipping $table_name as all data is imported\n";
-            return 1;  # Skip if it matches the regex and action is '*'
-        }
+
+# Skip FK inserts if entire table is being included anyway
+# (useful for cases where we don't support equality operator)
+sub should_skip_insert_for_fk ($) {
+  my $table_name = shift;
+  
+  $table_name =~ s/"\."/\./g;
+  notice "$table_name\n";
+  foreach my $limit (@limits) {
+    my ($regex, $action) = @$limit;
+    if ($table_name =~ $regex && $action eq '*') {
+      notice "Skipping $table_name as all data is imported\n";
+      return 1;  # Skip if it matches the regex and action is '*'
     }
-    return 0;  # Do not skip by default
+  }
+  return 0;  # Do not skip by default
 }
+
 
 # Keep inserting rows to satisfy any fk constraints until no more
 # are inserted. This should handle circular references.
@@ -808,6 +812,9 @@ while ($num_rows) {
 
   foreach my $fk (@fks) {
     my ($fk_table, $target_table, @pairs) = @$fk;
+
+    next if should_skip_insert_for_fk($target_table);
+
     my $target_sample_table = $sample_tables{ $target_table };
     my $sample_fk_table = $sample_tables{ $fk_table };
 
@@ -822,8 +829,6 @@ while ($num_rows) {
 
     my $where = join ' AND ',
       map { "s1.$_->[1] IS NULL" } @pairs;
-
-    next if should_skip_insert_for_fk($target_table);
 
     # Insert into the sample table all the rows needed to
     # satisfy the fk table, except those already present.
