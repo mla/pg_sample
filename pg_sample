@@ -892,7 +892,10 @@ foreach my $table (@tables) {
     my ($count) = $dbh->selectrow_array("SELECT count(*) FROM $sample_table");
     notice "Exporting data from $sample_table ($count)\n";
   }
-  print "COPY $table FROM stdin;\n";
+  # Specify column ordering explicitly in COPY FROM in case the ordering is
+  # different in the restored database.
+  my $columns = $sample_table->columns_quoted;
+  print "COPY $table($columns) FROM stdin;\n";
 
   if ($opt{ordered}) {
     my @cols = find_candidate_key($table);
