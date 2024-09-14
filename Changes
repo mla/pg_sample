@@ -1,3 +1,5 @@
+  - Readme additions and corrections (thanks to @glass-ships)
+
 1.17 Feb 17, 2023
   - Fix for handling of generated columns, update Perl version
     (thanks to Nicholas Davidson <nicholasd@foresightfactory.co>)
