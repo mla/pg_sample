@@ -211,6 +211,8 @@ $SIG{TERM} = $SIG{INT} = $SIG{QUIT} = $SIG{HUP} = sub {
   die "Received signal '$signal'; cleaning up and terminating.\n";
 };
 
+$SIG{__DIE__} = sub { our @reason = @_ };
+
 BEGIN {
   # Encapsulate a fully-qualified Postgresql table name
   package Table;
@@ -943,6 +945,8 @@ foreach my $table (@tables) {
 print "\n";
 
 END {
+  our @reason;
+
   # remove sample tables unless requested not to
   if ($created_schema && !$opt{keep}) {
     notice "Dropping sample schema $opt{sample_schema}\n";
@@ -950,5 +954,9 @@ END {
   }
 
   notice "Done.\n";
-  exit 0;
+  if (@reason) {
+    exit 1;
+  } else {
+    exit 0;
+  }
 }
