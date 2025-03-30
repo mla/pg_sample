@@ -2,6 +2,7 @@
   - Specify column ordering explicitly on COPY (thanks to @wekeesler)
   - Skip trying to insert FKs if including entire table anyway
     (thanks to @reshab48)
+  - Use proper exit code on error (thanks to @KevinCarterDev)
 
 1.17 Feb 17, 2023
   - Fix for handling of generated columns, update Perl version
