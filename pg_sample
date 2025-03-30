@@ -211,7 +211,10 @@ $SIG{TERM} = $SIG{INT} = $SIG{QUIT} = $SIG{HUP} = sub {
   die "Received signal '$signal'; cleaning up and terminating.\n";
 };
 
-$SIG{__DIE__} = sub { our @reason = @_ };
+my $exit_code = 0;
+$SIG{__DIE__} = sub {
+  $exit_code = 1 unless $^S; # unless in eval
+};
 
 BEGIN {
   # Encapsulate a fully-qualified Postgresql table name
@@ -945,18 +948,12 @@ foreach my $table (@tables) {
 print "\n";
 
 END {
-  our @reason;
-
   # remove sample tables unless requested not to
   if ($created_schema && !$opt{keep}) {
     notice "Dropping sample schema $opt{sample_schema}\n";
     $dbh->do("DROP SCHEMA $opt{sample_schema} CASCADE");
   }
-
   notice "Done.\n";
-  if (@reason) {
-    exit 1;
-  } else {
-    exit 0;
-  }
+
+  exit $exit_code;
 }
