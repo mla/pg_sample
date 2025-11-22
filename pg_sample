@@ -1,5 +1,12 @@
 #!/usr/bin/env perl
 
+use strict;
+use warnings;
+use Carp;
+use Getopt::Long qw/ GetOptions :config no_ignore_case /;
+use DBI;
+use DBD::Pg 2.0.0;
+
 our $VERSION = "1.17";
 
 =head1 NAME
@@ -42,6 +49,12 @@ import errors.
 =head2 Command-line Options
 
 =over
+
+=item B<--approxcount>
+
+In order to count the tuples stored in a table do not read them but read the
+count stored in PostgreSQL's 'pg_class' table.  It may be way off is the table
+needs an ANALYZE pass.
 
 =item I<dbname>
 
@@ -124,6 +137,14 @@ increase the running time of the script.
 
 Schema name to use for the sample database (defaults to _pg_sample).
 
+=item B<--sampling_method=>I<method name>
+
+Sampling method used to select samples, either 'BERNOULLI' or 'SYSTEM'.
+Defaults to BERNOULLI, the most random method.
+SYSTEM may speed up the sampling phase on a huge database, at the
+potential price of a less-random sample.
+Implicitly enables --random.
+
 =item B<--schema=>I<schema>
 
 Limit sampling to the specified schema. By default, all schemas are sampled.
@@ -196,13 +217,6 @@ Maurice Aubrey <maurice.aubrey@gmail.com>
 #
 # Finally, the database schema and sample data are output, renaming the sample
 # table names to reflect the original database.
-
-use strict;
-use warnings;
-use Carp;
-use Getopt::Long qw/ GetOptions :config no_ignore_case /;
-use DBI;
-use DBD::Pg 2.0.0;
 
 our $MAX_IDENTIFIER_LENGTH = 63;
 
@@ -340,7 +354,7 @@ my %opt; # closure; all functions have access to options
         PrintError       => 0,
         HandleError      => sub { confess( shift ) },
       },
-    ) or croak "db connection failed!";
+    ) or croak "DB connection failed!";
 
     $dbh->trace(1) if defined $opt{trace};
 
@@ -502,6 +516,7 @@ sub notice (@) {
 
 
 %opt = (
+approxcount => 0,
   db_host       => '',
   db_port       => '',
   keep          => 0,
@@ -509,10 +524,12 @@ sub notice (@) {
   random        => 0,
   schema        => undef,
   sample_schema => '_pg_sample',
+	sampling_method => undef,
   verbose       => 0,
 );
 
 GetOptions(\%opt,
+  "approxcount",
   "data-only|data_only|a",
   "db_name|db-name=s",
   "db_user|db-user|db_username|db-username|username|U=s",
@@ -530,7 +547,8 @@ GetOptions(\%opt,
   "ordered_desc|ordered-desc",
   "ordered_asc|ordered-asc",
   "random",
-  "sample_schema=s",
+	"sample_schema=s",
+	"sampling_method=s",
   "schema=s",
   "trace",
   "verbose|v",
@@ -548,16 +566,25 @@ if ($opt{help}) {
   exit 0;
 }
 
+if (defined $opt{sampling_method}) {
+	$opt{sampling_method}=uc($opt{sampling_method});
+	die "Option sampling-method accepts either 'BERNOULLI' or 'SYSTEM'" if ('BERNOULLI' ne $opt{sampling_method} and 'SYSTEM' ne $opt{sampling_method});
+	$opt{random}=2; # implied
+} else {
+	$opt{sampling_method}='BERNOULLI' if $opt{random}; # default method
+}
+
 $opt{ordered} = $opt{ordered_desc} ? 'DESC'
               : $opt{ordered_asc}  ? 'ASC'
               : $opt{ordered}      ? 'DESC'
               : undef;
 if ($opt{random} && $opt{ordered}) {
-  print("Error: --random and --ordered are mutually exclusive");
+	warn "you used --sampling_method, therefore --random was automatically enabled " if ( 2 == $opt{random} );
+  warn "Error: --random and --ordered are mutually exclusive";
   exit 1;
 }
 
-@ARGV or die "\nUsage: $0 [ option... ] [ dbname ]\n\n\t" .
+@ARGV or die "Usage: $0 [ option... ] [ dbname ]\n\n\t" .
              "$0 --help for detailed options\n";
 
 push @{ $opt{limit} }, ".* = 100 "; # append default limit rule
@@ -622,6 +649,16 @@ unless ($opt{'data-only'}) {
 # If running PostgreSQL 9.1 or later, use UNLOGGED tables
 my $unlogged = $pg_version >= version->declare('9.1') ? 'UNLOGGED' : '';
 
+# # Useless(?)
+# # Ensuring that the user can read (GRANT...) the 'pg_class' table
+# eval {
+#   $dbh->selectrow_array(qq{SELECT 1 FROM pg_class LIMIT 1")});
+# };
+# if ($@) {
+#   warn "I cannot read from the 'pg_class' table, therefore I cannot honor --approxcount: $@\n";
+#   $opt{approxcount}=0;
+# }
+
 notice "Creating sample schema $opt{sample_schema}\n";
 $dbh->do(qq{ CREATE SCHEMA $opt{sample_schema} });
 my $created_schema = 1; # keep track that we actually did it; see END block
@@ -667,6 +704,14 @@ foreach my $row (@{$table_info}) {
       ORDER BY ordinal_position
   }, { Slice => {} }, ($tname, $sname) ) ];
 
+	my $sthTabelExistsP = $dbh->table_info('', undef, $tname, 'TABLE'); # FOREIGN TABLE, VIEW, MATERIALIZED VIEW
+  my $table_exists = keys (@{$sthTabelExistsP->fetchall_arrayref({})});
+  $sthTabelExistsP->finish();
+  if ( 0>= $table_exists ) {
+    notice "\nThe '$tname' table vanished\n" if ($opt{verbose});
+    next;
+  }
+
   my $table = Table->new($sname, $tname, $columns);
   push @tables, $table;
 
@@ -693,7 +738,7 @@ foreach my $row (@{$table_info}) {
           SELECT greatest(count(*), ?) FROM $table
         }, undef, $_->[1]);
         my $percent = 100 * $_->[1] / $table_num_rows;
-        $tablesample = "TABLESAMPLE BERNOULLI ($percent)";
+        $tablesample = "TABLESAMPLE $opt{sampling_method} ($percent)";
       }
     } elsif ($_->[1] =~ /^\d+(\.\d+)?%$/) { # percent value turned into LIMIT
       if (not $opt{random} or $pg_version < version->declare('9.5')) {
@@ -704,7 +749,7 @@ foreach my $row (@{$table_info}) {
         $limit = "LIMIT $total_rows";
       } else {
         my $percent = (substr $_->[1], 0, (length $_->[1]) - 1);
-        $tablesample = "TABLESAMPLE BERNOULLI ($percent)";
+        $tablesample = "TABLESAMPLE $opt{sampling_method} ($percent)";
       }
     } else { # otherwise treated as subselect
       $where = "($_->[1])";
@@ -752,6 +797,7 @@ foreach my $row (@{$table_info}) {
   }
 }
 
+
 # Find foreign keys
 my @fks;
 foreach my $table (@tables) {
@@ -791,23 +837,49 @@ foreach my $fk (@fks) {
 }
 
 
+{
+	my $warn_last_table=''; # To avoid repeating a notice about the same table
+	
 # Skip FK inserts if entire table is being included anyway
 # (useful for cases where we don't support equality operator)
 sub should_skip_insert_for_fk ($) {
   my $table_name = shift;
   
   $table_name =~ s/"\."/\./g;
-  notice "$table_name\n";
+		my $already_noticed;
+		if ($warn_last_table ne $table_name) {
+			# The last notice wasn't about this table
+			$warn_last_table = $table_name;
+			$already_noticed=0;
+		}	else {
+			$already_noticed=1;
+		}		
+    notice "$table_name\n" if (! $already_noticed);
   foreach my $limit (@limits) {
     my ($regex, $action) = @$limit;
     if ($table_name =~ $regex && $action eq '*') {
-      notice "Skipping $table_name as all data is imported\n";
+				notice "Skipping $table_name (regex $regex) as all data is imported\n" if (! $already_noticed);
       return 1;  # Skip if it matches the regex and action is '*'
     }
   }
   return 0;  # Do not skip by default
 }
+}
 
+# Obtains the amount of tuples in a table.
+# May over/under-estimate if the table needs an ANALYZE pass.
+sub APPROX_table_tuples_count($$) {
+	my $dbh = ${ shift() }; # dereference the reference to DBI session handle
+	my $tablename = $dbh->quote_identifier(shift);
+
+	# todo: take into account the last ANALYZE age, sizeof(tuples)/sizeof(shema def)...
+	my ($count) = $dbh->do(qq{SELECT c.reltuples::bigint FROM pg_class WHERE relname = $tablename AND relkind = 'r'});
+	if ($count < 1) { # may indicate that the evaluated amount is dubious
+		$dbh->do(qq{ANALYZE $tablename});
+		($count) = $dbh->do(qq{SELECT c.reltuples::bigint AS approx_row_count FROM pg_class c WHERE c.relname = $tablename AND c.relkind = 'r'});
+	}
+	return $count;
+}
 
 # Keep inserting rows to satisfy any fk constraints until no more
 # are inserted. This should handle circular references.
