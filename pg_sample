@@ -115,10 +115,45 @@ Select from the table records after ordering the records by primary key value
 in descending order. --ordered-desc and --ordered-asc are also available to
 control whether sort is descending or ascending, respectively.
 
-=item B<--random>
+=item B<--random[=>I<method>B<]>
 
-Randomize the rows initially selected from each table. May significantly
-increase the running time of the script.
+Randomize the rows initially selected from each table. If no method is specified,
+uses the best available method for your PostgreSQL version (BERNOULLI on 9.5+,
+LEGACY on older versions).
+
+Available methods (abbreviations supported):
+
+=over 8
+
+=item * I<bernoulli> (or I<b>, I<bern>, etc.)
+
+TABLESAMPLE BERNOULLI - Row-level random sampling. Each row is independently
+selected with the specified probability. Provides the most uniformly random
+distribution but slower on very large tables. Requires PostgreSQL 9.5+.
+
+=item * I<system> (or I<s>, I<sys>, etc.)
+
+TABLESAMPLE SYSTEM - Block-level random sampling at 8KB page granularity.
+Much faster than BERNOULLI (5-20x on large tables) but with potential clustering
+bias since entire blocks are selected together. Best for large tables (>1M rows)
+where performance matters more than perfect randomness. Requires PostgreSQL 9.5+.
+
+=item * I<legacy> (or I<l>, I<leg>, etc.)
+
+ORDER BY random() - Traditional method that works on all PostgreSQL versions.
+Slowest method (sorts entire table). Only use on PostgreSQL <9.5 or when
+testing backward compatibility.
+
+=back
+
+Examples:
+
+  --random              Use smart default (BERNOULLI on PG 9.5+)
+  --random=system       Fast sampling for large tables
+  --random=b            Quick typing with abbreviation
+  --random=sys          Same as --random=system
+
+Note: --random and --ordered are mutually exclusive.
 
 =item B<--sample-schema=>I<schema>
 
@@ -419,6 +454,86 @@ sub quote_constant (@) {
   return wantarray ? @quoted: $quoted[0];
 }
 
+# Get row count - approximate by default, exact if requested.
+# Uses pg_class.reltuples for fast approximate counts.
+# Falls back to exact SELECT count(*) if statistics are unavailable.
+sub get_row_count {
+  my ($dbh, $table, %opt) = @_;
+
+  # Use exact count if explicitly requested (for LEGACY method)
+  if ($opt{use_exact}) {
+    return $dbh->selectrow_array(qq{ SELECT count(*) FROM $table });
+  }
+
+  # Try to get approximate count from PostgreSQL statistics
+  my ($approx_count) = $dbh->selectrow_array(qq{
+    SELECT c.reltuples::bigint
+      FROM pg_class c
+      JOIN pg_namespace n ON n.oid = c.relnamespace
+     WHERE n.nspname = ?
+       AND c.relname = ?
+       AND c.relkind IN ('r', 'p')
+  }, undef, $table->schema, $table->table);
+
+  # Fall back to exact count if no statistics available
+  # (reltuples is -1 for never-analyzed tables, NULL if table doesn't exist)
+  if (!defined($approx_count) || $approx_count < 0) {
+    return $dbh->selectrow_array(qq{ SELECT count(*) FROM $table });
+  }
+
+  return $approx_count;
+}
+
+# Resolve random method from user input with prefix matching.
+# Supports exact matches and unique prefixes (case-insensitive).
+# Dies with helpful error message if method is unknown or ambiguous.
+sub resolve_random_method {
+  my $input = shift // '';
+
+  return undef unless length $input;
+
+  my @methods = qw/ BERNOULLI SYSTEM LEGACY /;
+  my $search = uc $input;
+
+  # Try to find which method(s) this is a prefix of
+  my @matches = grep { index($_, $search) == 0 } @methods;
+
+  return $matches[0] if 1 == @matches;
+
+  if (@matches > 1) {
+    die "Error: Ambiguous random method '$input'\n" .
+        "       Could be: " . join(' or ', map { lc } @matches) . "\n" .
+        "       Please use at least " . (length($search) + 1) . " characters to disambiguate\n";
+  }
+
+  # No matches found
+  die "Error: Unknown random method '$input'\n" .
+      "       Valid methods: bernoulli, system, legacy\n" .
+      "       (You can use abbreviations like 'b', 's', 'l')\n";
+}
+
+# Determine which random method to use based on PostgreSQL version
+# and user preference. Returns 'BERNOULLI', 'SYSTEM', or 'LEGACY'.
+# Dies with helpful error if user requests unsupported method for their version.
+sub get_random_method {
+  my $pg_version = shift;
+
+  # User didn't specify a method - use smart default
+  if (!defined $opt{random_method}) {
+    return $pg_version >= version->declare('9.5') ? 'BERNOULLI' : 'LEGACY';
+  }
+
+  # User specified method - validate version compatibility
+  if ($opt{random_method} =~ /^(BERNOULLI|SYSTEM)$/ &&
+      $pg_version < version->declare('9.5')) {
+    die "Error: $opt{random_method} requires PostgreSQL 9.5+\n" .
+        "       Your version: $pg_version\n" .
+        "       Use --random=legacy (or just --random) for older versions\n";
+  }
+
+  return $opt{random_method};
+}
+
 # Encode the actual schema and table name into a new table
 # name that lives under our sample schema. e.g., a table like
 # users.details (schema users, table details) would be converted
@@ -506,7 +621,6 @@ sub notice (@) {
   db_port       => '',
   keep          => 0,
   ordered       => 0,
-  random        => 0,
   schema        => undef,
   sample_schema => '_pg_sample',
   verbose       => 0,
@@ -529,7 +643,7 @@ GetOptions(\%opt,
   "ordered",
   "ordered_desc|ordered-desc",
   "ordered_asc|ordered-asc",
-  "random",
+  "random:s",
   "sample_schema=s",
   "schema=s",
   "trace",
@@ -552,9 +666,22 @@ $opt{ordered} = $opt{ordered_desc} ? 'DESC'
               : $opt{ordered_asc}  ? 'ASC'
               : $opt{ordered}      ? 'DESC'
               : undef;
+
+# Process --random[=method] option
+# If --random was specified, resolve the method (or set it to undef for auto-detection)
+# Note: Getopt::Long with :s returns '' (empty string) when flag is used without value
+if (defined $opt{random}) {
+  # --random with explicit method: resolve it now
+  # Handle both empty string and '0' (both mean "no method specified")
+  if ($opt{random} ne '' && $opt{random} ne '0') {
+    $opt{random_method} = resolve_random_method($opt{random});
+  }
+  # --random without method: random_method stays undef, will auto-detect later
+  # Convert to boolean for backward compatibility checks
+  $opt{random} = 1;
+}
 if ($opt{random} && $opt{ordered}) {
-  print("Error: --random and --ordered are mutually exclusive");
-  exit 1;
+  die "Error: --random and --ordered are mutually exclusive\n";
 }
 
 @ARGV or die "\nUsage: $0 [ option... ] [ dbname ]\n\n\t" .
@@ -689,11 +816,22 @@ foreach my $row (@{$table_info}) {
       if (!$opt{random} || $pg_version < version->declare('9.5')) {
         $limit = "LIMIT $_->[1]";
       } else {
-        my ($table_num_rows) = $dbh->selectrow_array(qq{
-          SELECT greatest(count(*), ?) FROM $table
-        }, undef, $_->[1]);
-        my $percent = 100 * $_->[1] / $table_num_rows;
-        $tablesample = "TABLESAMPLE BERNOULLI ($percent)";
+        my $method = get_random_method($pg_version);
+
+        if ($method eq 'LEGACY') {
+          # LEGACY: use exact count for consistency
+          my ($table_num_rows) = get_row_count($dbh, $table, use_exact => 1);
+          $table_num_rows = $_->[1] if $table_num_rows < $_->[1];
+          my $percent = 100 * $_->[1] / $table_num_rows;
+          $limit = "LIMIT $_->[1]";
+          # ORDER BY will be set below at line ~820
+        } else {
+          # TABLESAMPLE: use approximate count (it's already approximate!)
+          my ($table_num_rows) = get_row_count($dbh, $table);
+          $table_num_rows = $_->[1] if $table_num_rows < $_->[1];
+          my $percent = 100 * $_->[1] / $table_num_rows;
+          $tablesample = "TABLESAMPLE $method ($percent)";
+        }
       }
     } elsif ($_->[1] =~ /^\d+(\.\d+)?%$/) { # percent value turned into LIMIT
       if (not $opt{random} or $pg_version < version->declare('9.5')) {
@@ -703,8 +841,19 @@ foreach my $row (@{$table_info}) {
 
         $limit = "LIMIT $total_rows";
       } else {
+        my $method = get_random_method($pg_version);
         my $percent = (substr $_->[1], 0, (length $_->[1]) - 1);
-        $tablesample = "TABLESAMPLE BERNOULLI ($percent)";
+
+        if ($method eq 'LEGACY') {
+          # LEGACY: need to convert percentage to row count
+          my ($table_num_rows) = get_row_count($dbh, $table, use_exact => 1);
+          my $total_rows = int($table_num_rows * $percent / 100);
+          $limit = "LIMIT $total_rows";
+          # ORDER BY will be set below at line ~820
+        } else {
+          # TABLESAMPLE: just pass the percentage directly (no count needed!)
+          $tablesample = "TABLESAMPLE $method ($percent)";
+        }
       }
     } else { # otherwise treated as subselect
       $where = "($_->[1])";
@@ -715,7 +864,10 @@ foreach my $row (@{$table_info}) {
   # warn "\n[LIMIT] $table WHERE $where $limit\n";
 
   if ($opt{random} && $pg_version < version->declare('9.5')) {
-    $order = $opt{random} ? 'ORDER BY random()' : '';
+    $order = 'ORDER BY random()';
+  } elsif ($opt{random} && defined($opt{random_method}) && $opt{random_method} eq 'LEGACY') {
+    # User explicitly requested LEGACY method on PG 9.5+
+    $order = 'ORDER BY random()';
   } elsif (my $direction = $opt{ordered}) {
     my @cols = find_candidate_key($table);
     if (@cols) {

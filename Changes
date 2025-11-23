@@ -1,3 +1,11 @@
+1.18 TBD
+  - Enhanced --random flag to support multiple sampling methods (BERNOULLI,
+    SYSTEM, LEGACY) with fuzzy matching for abbreviations
+  - Automatic performance optimization using approximate row counts from
+    pg_class.reltuples for TABLESAMPLE methods (2-20x speedup on large tables)
+  - Automatic version detection: uses BERNOULLI on PostgreSQL 9.5+,
+    LEGACY on older versions
+
   - Readme additions and corrections (thanks to @glass-ships)
   - Specify column ordering explicitly on COPY (thanks to @wekeesler)
   - Skip trying to insert FKs if including entire table anyway

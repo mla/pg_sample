@@ -26,7 +26,7 @@ use warnings;
 use Carp;
 use DBI;
 use Getopt::Long qw/ GetOptions :config no_ignore_case /;
-use Test::More tests => 28;
+use Test::More tests => 38;
 
 $| = 1;
 
@@ -420,6 +420,67 @@ $ord = $dbh->selectrow_array(qq{ SELECT STRING_AGG(id::text, ',') FROM "test_ord
 is($ord, '1,2', "results should be ordered");
 
 $dbh->disconnect;
+
+# ===== Random Sampling Method Tests =====
+# Test the new --random[=method] functionality
+
+# Get PostgreSQL version for conditional testing
+my $pg_version_str = $template1_dbh->selectrow_array("SHOW server_version");
+my ($major, $minor) = $pg_version_str =~ /^(\d+)\.(\d+)/;
+my $supports_tablesample = ($major > 9 || ($major == 9 && $minor >= 5));
+
+# Test 1: Backward compatibility - plain --random still works
+# (Database still exists from previous test - test_ordered uses it)
+@opts = (@base_opts, '--random', '--limit=100');
+$cmd = "pg_sample @opts $opt{db_name} > sample_random.sql";
+is(system($cmd), 0, "Plain --random (backward compatible) works");
+
+SKIP: {
+  skip "TABLESAMPLE not supported on PostgreSQL < 9.5", 9 unless $supports_tablesample;
+
+  # Test 2-4: Full method names
+  @opts = (@base_opts, '--random=bernoulli', '--limit=100');
+  $cmd = "pg_sample @opts $opt{db_name} > sample_bernoulli.sql";
+  is(system($cmd), 0, "Full method name: bernoulli");
+
+  @opts = (@base_opts, '--random=system', '--limit=100');
+  $cmd = "pg_sample @opts $opt{db_name} > sample_system.sql";
+  is(system($cmd), 0, "Full method name: system");
+
+  @opts = (@base_opts, '--random=legacy', '--limit=100');
+  $cmd = "pg_sample @opts $opt{db_name} > sample_legacy.sql";
+  is(system($cmd), 0, "Full method name: legacy");
+
+  # Test 5-7: Abbreviations
+  @opts = (@base_opts, '--random=b', '--limit=100');
+  $cmd = "pg_sample @opts $opt{db_name} > sample_b.sql";
+  is(system($cmd), 0, "Abbreviation: b -> bernoulli");
+
+  @opts = (@base_opts, '--random=sys', '--limit=100');
+  $cmd = "pg_sample @opts $opt{db_name} > sample_sys.sql";
+  is(system($cmd), 0, "Abbreviation: sys -> system");
+
+  @opts = (@base_opts, '--random=l', '--limit=100');
+  $cmd = "pg_sample @opts $opt{db_name} > sample_l.sql";
+  is(system($cmd), 0, "Abbreviation: l -> legacy");
+
+  # Test 8: Case insensitivity
+  @opts = (@base_opts, '--random=SYSTEM', '--limit=100');
+  $cmd = "pg_sample @opts $opt{db_name} > sample_SYSTEM.sql";
+  is(system($cmd), 0, "Case insensitive: SYSTEM");
+
+  # Test 9: Invalid method produces error
+  @opts = (@base_opts, '--random=invalid', '--limit=100');
+  $cmd = "pg_sample @opts $opt{db_name} > /dev/null 2>&1";
+  isnt(system($cmd), 0, "Invalid method 'invalid' produces error");
+
+  # Test 10: Mutual exclusivity with --ordered
+  @opts = (@base_opts, '--random=system', '--ordered', '--limit=100');
+  $cmd = "pg_sample @opts $opt{db_name} > /dev/null 2>&1";
+  isnt(system($cmd), 0, "--random and --ordered are mutually exclusive");
+}
+
+# Clean up - drop the database
 $template1_dbh->do("DROP DATABASE $opt{db_name}");
 
 exit 0;
